@@ -12,23 +12,15 @@
     .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
-    .sheet-table th, .sheet-table td {
-      border: 1.5px solid #111827;
-    }
-    .bg-total-yellow, .bg-total-yellow td {
-      background-color: #facc15 !important;
-    }
+    .sheet-table th, .sheet-table td { border: 1.5px solid #111827; }
+    .bg-total-yellow, .bg-total-yellow td { background-color: #facc15 !important; }
 
     @media print {
       body * { visibility: hidden; }
       #printContainer, #printContainer * { visibility: visible; }
       #mainSidebar, header, nav, .no-print { display: none !important; }
-      #printContainer {
-        position: absolute; left: 0; top: 0; width: 100%; margin: 0 !important; padding: 0 !important;
-      }
-      .print-area {
-        display: block !important; border: none !important; box-shadow: none !important; margin: 0 !important; width: 100% !important; padding: 0 !important;
-      }
+      #printContainer { position: absolute; left: 0; top: 0; width: 100%; margin: 0 !important; padding: 0 !important; }
+      .print-area { display: block !important; border: none !important; box-shadow: none !important; margin: 0 !important; width: 100% !important; padding: 0 !important; }
       table { page-break-inside: auto; width: 100% !important; }
       tr { page-break-inside: avoid; page-break-after: auto; }
       @page { size: A4 landscape; margin: 8mm 10mm 8mm 10mm; }
@@ -37,7 +29,6 @@
 </head>
 <body class="bg-slate-100 text-slate-800 flex h-screen overflow-hidden">
 
-  <!-- TOAST NOTIFICATION -->
   <div id="toastNotif" class="fixed top-4 right-4 sm:top-5 sm:right-5 z-50 transform translate-x-[150%] transition-transform duration-300 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 text-xs font-semibold max-w-[90vw]">
     <i class="fa-solid fa-circle-check text-base"></i>
     <span id="toastMsg">Data berhasil disimpan!</span>
@@ -45,7 +36,6 @@
 
   <div id="mobileSidebarBackdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-slate-900/60 z-30 hidden lg:hidden transition-opacity"></div>
 
-  <!-- SIDEBAR -->
   <aside id="mainSidebar" class="fixed lg:static inset-y-0 left-0 z-40 w-64 bg-slate-900 text-white flex flex-col justify-between shadow-2xl lg:shadow-xl transform -translate-x-full lg:translate-x-0 transition-transform duration-300 flex-shrink-0 no-print">
     <div>
       <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between">
@@ -132,7 +122,6 @@
     </div>
   </aside>
 
-  <!-- KONTEN UTAMA -->
   <main class="flex-1 flex flex-col h-screen overflow-hidden w-full">
     
     <header class="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between shadow-xs no-print">
@@ -456,7 +445,6 @@
       </section>
     </div>
 
-    <!-- BOTTOM BAR MOBILE -->
     <nav class="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 px-2 py-2 flex justify-around items-center z-20 shadow-lg no-print">
       <button onclick="switchTab('ongoing')" id="bottomBtn-ongoing" class="flex flex-col items-center justify-center flex-1 py-1 text-indigo-600 font-bold">
         <i class="fa-solid fa-spinner text-base mb-0.5"></i>
@@ -793,6 +781,96 @@
     let activeProjectId = null;
     let activeViewerCPId = null;
 
+    // Ambil data dari Cloud MySQL Aiven
+    async function loadCloudData() {
+      setSyncStatus('Memuat Cloud...', 'text-amber-400');
+      try {
+        const res = await fetch(API_URL);
+        if (res.ok) {
+          const data = await res.json();
+          if (data) {
+            // Rencana Kerja
+            if (data.mold_name !== undefined) document.getElementById('rk_moldName').value = data.mold_name || '';
+            if (data.job_desc !== undefined) document.getElementById('rk_moldJob').value = data.job_desc || '';
+            if (data.start_date !== undefined) document.getElementById('rk_moldStartDate').value = data.start_date || '';
+            if (data.end_date !== undefined) document.getElementById('rk_moldEndDate').value = data.end_date || '';
+
+            if (data.checkpoints) {
+              rk_checkpoints = typeof data.checkpoints === 'string' ? JSON.parse(data.checkpoints) : data.checkpoints;
+              localStorage.setItem('modifikasi_mold_checkpoints', JSON.stringify(rk_checkpoints));
+            }
+
+            // Workshop Projects, Logs, & Archive
+            if (data.all_projects) {
+              projects = typeof data.all_projects === 'string' ? JSON.parse(data.all_projects) : data.all_projects;
+              localStorage.setItem('workshop_projects', JSON.stringify(projects));
+            }
+            if (data.history_logs) {
+              historyLogs = typeof data.history_logs === 'string' ? JSON.parse(data.history_logs) : data.history_logs;
+              localStorage.setItem('workshop_logs', JSON.stringify(historyLogs));
+            }
+            if (data.rk_archive) {
+              savedRencanaKerja = typeof data.rk_archive === 'string' ? JSON.parse(data.rk_archive) : data.rk_archive;
+              localStorage.setItem('workshop_rk_archive', JSON.stringify(savedRencanaKerja));
+            }
+
+            setSyncStatus('Tersimpan di Cloud', 'text-emerald-400');
+            renderDashboard();
+            rk_renderAll();
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("Gagal memuat dari API Cloud:", err);
+      }
+
+      setSyncStatus('Tersimpan di Cloud', 'text-emerald-400');
+      renderDashboard();
+      rk_renderAll();
+    }
+
+    // Simpan semua data ke Cloud MySQL Aiven
+    function saveAllDataToCloud() {
+      setSyncStatus('Menyimpan...', 'text-amber-400');
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(async () => {
+        try {
+          const rkInfo = {
+            moldName: document.getElementById('rk_moldName') ? document.getElementById('rk_moldName').value : '',
+            moldJob: document.getElementById('rk_moldJob') ? document.getElementById('rk_moldJob').value : '',
+            moldStartDate: document.getElementById('rk_moldStartDate') ? document.getElementById('rk_moldStartDate').value : '',
+            moldEndDate: document.getElementById('rk_moldEndDate') ? document.getElementById('rk_moldEndDate').value : ''
+          };
+
+          const payload = {
+            moldName: rkInfo.moldName,
+            moldJob: rkInfo.moldJob,
+            moldStartDate: rkInfo.moldStartDate,
+            moldEndDate: rkInfo.moldEndDate,
+            checkpoints: rk_checkpoints,
+            allProjects: projects,
+            historyLogs: historyLogs,
+            rkArchive: savedRencanaKerja
+          };
+
+          const res = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (res.ok) {
+            setSyncStatus('Tersimpan di Cloud', 'text-emerald-400');
+          } else {
+            setSyncStatus('Tersimpan di Lokal', 'text-amber-400');
+          }
+        } catch (err) {
+          console.error("Gagal sinkronisasi ke cloud:", err);
+          setSyncStatus('Tersimpan di Lokal', 'text-amber-400');
+        }
+      }, 500);
+    }
+
     function readFileAsBase64(file) {
       return new Promise((resolve) => {
         if (!file) { resolve(null); return; }
@@ -838,6 +916,7 @@
         showToast("Penyimpanan lokal penuh. Gunakan foto dengan resolusi lebih kecil!");
       }
       renderDashboard();
+      saveAllDataToCloud();
     }
 
     function toggleWorkshopMenu() {
@@ -1791,36 +1870,6 @@
     let rk_checkpoints = JSON.parse(localStorage.getItem(RK_STORAGE_KEY_CHECKPOINTS)) || [];
     const rk_categoryOrder = ["Cavity", "Core", "Sleder", "Base Mold", "Ejector", "Spoting", "Lainnya"];
 
-    async function rk_loadCloudData() {
-      setSyncStatus('Memuat Cloud...', 'text-amber-400');
-      try {
-        const res = await fetch(API_URL);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && (data.mold_name || data.checkpoints)) {
-            document.getElementById('rk_moldName').value = data.mold_name || '';
-            document.getElementById('rk_moldJob').value = data.job_desc || '';
-            document.getElementById('rk_moldStartDate').value = data.start_date || '';
-            document.getElementById('rk_moldEndDate').value = data.end_date || '';
-
-            if (data.checkpoints) {
-              rk_checkpoints = typeof data.checkpoints === 'string' ? JSON.parse(data.checkpoints) : data.checkpoints;
-              localStorage.setItem(RK_STORAGE_KEY_CHECKPOINTS, JSON.stringify(rk_checkpoints));
-            }
-            setSyncStatus('Tersimpan di Cloud', 'text-emerald-400');
-            rk_renderAll();
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn("Gagal memuat dari API Cloud, membaca cache lokal:", err);
-      }
-
-      rk_loadSavedLocalInfo();
-      setSyncStatus('Tersimpan di Cloud', 'text-emerald-400');
-      rk_renderAll();
-    }
-
     function rk_saveAllData() {
       localStorage.setItem(RK_STORAGE_KEY_CHECKPOINTS, JSON.stringify(rk_checkpoints));
       const info = {
@@ -1830,53 +1879,10 @@
         moldEndDate: document.getElementById('rk_moldEndDate').value
       };
       localStorage.setItem(RK_STORAGE_KEY_INFO, JSON.stringify(info));
-
-      setSyncStatus('Menyimpan...', 'text-amber-400');
-      clearTimeout(saveTimeout);
-      saveTimeout = setTimeout(async () => {
-        try {
-          const payload = {
-            moldName: info.moldName,
-            moldJob: info.moldJob,
-            moldStartDate: info.moldStartDate,
-            moldEndDate: info.moldEndDate,
-            checkpoints: rk_checkpoints
-          };
-
-          const res = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-
-          if (res.ok) {
-            setSyncStatus('Tersimpan di Cloud', 'text-emerald-400');
-          } else {
-            setSyncStatus('Tersimpan di Lokal', 'text-amber-400');
-          }
-        } catch (err) {
-          console.error("Gagal sinkronisasi ke server:", err);
-          setSyncStatus('Tersimpan di Lokal', 'text-amber-400');
-        }
-      }, 500);
+      saveAllDataToCloud();
     }
 
-    function rk_loadSavedLocalInfo() {
-      const saved = localStorage.getItem(RK_STORAGE_KEY_INFO);
-      if (saved) {
-        try {
-          const info = JSON.parse(saved);
-          if (info.moldName !== undefined) document.getElementById('rk_moldName').value = info.moldName;
-          if (info.moldJob !== undefined) document.getElementById('rk_moldJob').value = info.moldJob;
-          if (info.moldStartDate !== undefined) document.getElementById('rk_moldStartDate').value = info.moldStartDate;
-          if (info.moldEndDate !== undefined) document.getElementById('rk_moldEndDate').value = info.moldEndDate;
-        } catch (e) {
-          console.error("Gagal membaca storage Rencana Kerja:", e);
-        }
-      }
-    }
-
-    async function rk_clearAllData(silent = false) {
+    function rk_clearAllData(silent = false) {
       if (silent || confirm("Yakin ingin mengosongkan seluruh formulir dan checkpoint Rencana Kerja?")) {
         rk_checkpoints = [];
         localStorage.removeItem(RK_STORAGE_KEY_CHECKPOINTS);
@@ -1888,7 +1894,7 @@
         document.getElementById('rk_moldEndDate').value = '';
 
         rk_renderAll();
-        rk_saveAllData();
+        saveAllDataToCloud();
         if (!silent) showToast("Formulir rencana kerja berhasil dikosongkan.");
       }
     }
@@ -2252,6 +2258,7 @@
         savedRencanaKerja = savedRencanaKerja.filter(a => a.id !== archiveId);
         localStorage.setItem('workshop_rk_archive', JSON.stringify(savedRencanaKerja));
         renderRKArchive();
+        saveAllDataToCloud();
         showToast("Arsip berhasil dihapus.");
       }
     }
@@ -2274,8 +2281,7 @@
     });
 
     rk_previewRateNotice();
-    renderDashboard();
-    rk_loadCloudData();
+    loadCloudData();
   </script>
 </body>
 </html>
