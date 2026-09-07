@@ -12,7 +12,6 @@
     .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
-    /* CSS Khusus Cetak Dokumen Rencana Kerja */
     .sheet-table th, .sheet-table td {
       border: 1.5px solid #111827;
     }
@@ -21,43 +20,18 @@
     }
 
     @media print {
-      body * {
-        visibility: hidden;
-      }
-      #printContainer, #printContainer * {
-        visibility: visible;
-      }
-      #mainSidebar, header, nav, .no-print {
-        display: none !important;
-      }
+      body * { visibility: hidden; }
+      #printContainer, #printContainer * { visibility: visible; }
+      #mainSidebar, header, nav, .no-print { display: none !important; }
       #printContainer {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        margin: 0 !important;
-        padding: 0 !important;
+        position: absolute; left: 0; top: 0; width: 100%; margin: 0 !important; padding: 0 !important;
       }
       .print-area {
-        display: block !important;
-        border: none !important;
-        box-shadow: none !important;
-        margin: 0 !important;
-        width: 100% !important;
-        padding: 0 !important;
+        display: block !important; border: none !important; box-shadow: none !important; margin: 0 !important; width: 100% !important; padding: 0 !important;
       }
-      table {
-        page-break-inside: auto;
-        width: 100% !important;
-      }
-      tr {
-        page-break-inside: avoid;
-        page-break-after: auto;
-      }
-      @page {
-        size: A4 landscape;
-        margin: 8mm 10mm 8mm 10mm;
-      }
+      table { page-break-inside: auto; width: 100% !important; }
+      tr { page-break-inside: avoid; page-break-after: auto; }
+      @page { size: A4 landscape; margin: 8mm 10mm 8mm 10mm; }
     }
   </style>
 </head>
@@ -69,10 +43,9 @@
     <span id="toastMsg">Data berhasil disimpan!</span>
   </div>
 
-  <!-- MOBILE OVERLAY BACKDROP -->
   <div id="mobileSidebarBackdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-slate-900/60 z-30 hidden lg:hidden transition-opacity"></div>
 
-  <!-- SIDEBAR (KIRI) -->
+  <!-- SIDEBAR -->
   <aside id="mainSidebar" class="fixed lg:static inset-y-0 left-0 z-40 w-64 bg-slate-900 text-white flex flex-col justify-between shadow-2xl lg:shadow-xl transform -translate-x-full lg:translate-x-0 transition-transform duration-300 flex-shrink-0 no-print">
     <div>
       <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between">
@@ -90,7 +63,7 @@
         </button>
       </div>
 
-      <nav class="p-3 sm:p-4 space-y-1.5 overflow-y-auto max-h-[calc(100vh-160px)] custom-scrollbar">
+      <nav class="p-3 sm:p-4 space-y-1.5 overflow-y-auto max-h-[calc(100vh-180px)] custom-scrollbar">
         <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-3 mb-2">Manajemen Proyek</div>
         
         <div>
@@ -117,7 +90,6 @@
           </div>
         </div>
 
-        <!-- MENU RENCANA KERJA -->
         <button onclick="switchTab('rencanaKerja')" id="tabBtn-rencanaKerja" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition text-xs font-medium">
           <span class="flex items-center gap-3">
             <i class="fa-solid fa-file-signature text-indigo-400"></i> Rencana Kerja
@@ -125,7 +97,6 @@
           <span class="text-[9px] px-1.5 py-0.5 rounded bg-indigo-900/60 text-indigo-300 font-bold">Form</span>
         </button>
 
-        <!-- MENU ARSIP RENCANA KERJA TERSIMPAN -->
         <button onclick="switchTab('rkArchive')" id="tabBtn-rkArchive" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition text-xs font-medium">
           <span class="flex items-center gap-3">
             <i class="fa-solid fa-box-archive text-emerald-400"></i> Arsip Rencana Kerja
@@ -149,9 +120,11 @@
     </div>
 
     <div class="p-3 sm:p-4 border-t border-slate-800 text-xs text-slate-400">
-      <div class="flex items-center justify-between mb-2 sm:mb-3">
+      <div class="flex items-center justify-between mb-2">
         <span class="text-[11px]">Database:</span>
-        <span class="text-emerald-400 font-semibold text-[11px] flex items-center gap-1.5"><i class="fa-solid fa-circle text-[7px] animate-pulse"></i> Tersimpan Otomatis</span>
+        <span id="sidebarSyncBadge" class="text-emerald-400 font-semibold text-[11px] flex items-center gap-1.5">
+          <i class="fa-solid fa-circle text-[7px] animate-pulse"></i> Tersimpan di Cloud
+        </span>
       </div>
       <button onclick="exportDataCSV()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-center transition flex items-center justify-center gap-2 font-medium text-xs">
         <i class="fa-solid fa-download"></i> Ekspor CSV
@@ -162,14 +135,16 @@
   <!-- KONTEN UTAMA -->
   <main class="flex-1 flex flex-col h-screen overflow-hidden w-full">
     
-    <!-- TOPBAR -->
     <header class="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between shadow-xs no-print">
       <div class="flex items-center gap-3">
         <button onclick="toggleMobileSidebar()" class="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 focus:outline-none">
           <i class="fa-solid fa-bars text-lg"></i>
         </button>
         <div>
-          <h2 id="pageTitle" class="text-base sm:text-lg font-bold text-slate-800 leading-tight">Workshop - Proyek Sedang Berjalan</h2>
+          <div class="flex items-center gap-2">
+            <h2 id="pageTitle" class="text-base sm:text-lg font-bold text-slate-800 leading-tight">Workshop - Proyek Sedang Berjalan</h2>
+            <span id="topbarSyncBadge" class="text-emerald-500 font-bold text-xs flex items-center gap-1">• Tersimpan di Cloud</span>
+          </div>
           <p id="pageSubtitle" class="text-[11px] sm:text-xs text-slate-500 hidden sm:block">Pantau mold yang sedang dalam proses fabrikasi dan checklist checkpoint.</p>
         </div>
       </div>
@@ -180,36 +155,28 @@
       </div>
     </header>
 
-    <!-- CONTENT AREA -->
     <div class="flex-1 overflow-y-auto p-4 sm:p-6 pb-24 lg:pb-6 custom-scrollbar">
       
-      <!-- Section Ongoing -->
       <section id="view-ongoing">
         <div id="ongoingCardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"></div>
       </section>
 
-      <!-- Section Scheduled -->
       <section id="view-scheduled" class="hidden">
         <div id="scheduledCardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"></div>
       </section>
 
-      <!-- Section Completed (Workshop Selesai) -->
       <section id="view-completed" class="hidden">
         <div id="completedCardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"></div>
       </section>
 
-      <!-- ========================================================================= -->
-      <!-- SECTION: RENCANA KERJA MODIFIKASI MOLD                                   -->
-      <!-- ========================================================================= -->
       <section id="view-rencanaKerja" class="hidden space-y-6">
         
-        <!-- HEADER KONTROL FORM RENCANA KERJA -->
         <div class="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-xs no-print">
           <div>
             <h3 class="text-sm sm:text-base font-bold text-slate-800 flex items-center gap-2">
               <i class="fa-solid fa-file-signature text-indigo-600"></i> Formulir & Lembar Cetak Rencana Kerja
             </h3>
-            <p class="text-xs text-slate-500">Susun estimasi biaya dan proses mesin. Setelah selesai, klik Simpan di bawah untuk mengarsipkan.</p>
+            <p class="text-xs text-slate-500">Susun estimasi biaya dan proses mesin. Tersimpan real-time ke MySQL Cloud.</p>
           </div>
           <div class="flex items-center gap-2">
             <button type="button" onclick="rk_clearAllData()" class="px-3 py-2 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 text-xs font-semibold rounded-xl border border-slate-200 transition">
@@ -221,7 +188,6 @@
           </div>
         </div>
 
-        <!-- STEP 1: FORM DATA AWAL MOLD -->
         <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200 no-print">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-3.5 mb-4 gap-1.5">
             <h4 class="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -251,7 +217,6 @@
           </div>
         </div>
 
-        <!-- STEP 2: FORM TAMBAH CHECKPOINT RENCANA KERJA -->
         <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200 no-print">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-3.5 mb-4 gap-1.5">
             <h4 class="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -316,7 +281,6 @@
             </div>
           </form>
 
-          <!-- TABEL LIVE EDIT RENCANA KERJA -->
           <div class="mt-5 border border-slate-200 rounded-xl overflow-hidden">
             <div class="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center text-xs font-bold">
               <span>Daftar Checkpoint Rencana Kerja</span>
@@ -339,11 +303,10 @@
               </table>
             </div>
 
-            <!-- WA BUTTON -->
             <div class="p-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
               <p class="text-xs text-slate-500 flex items-center gap-2">
                 <i class="fa-solid fa-circle-info text-indigo-500"></i>
-                Kirim daftar checklist pengerjaan ke grup / personal WhatsApp.
+                Kirim daftar checklist pengerjaan ke WhatsApp.
               </p>
               <button type="button" onclick="rk_sendCheckPointsToWA()" class="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm">
                 <i class="fa-brands fa-whatsapp text-sm"></i> Kirim ke WhatsApp
@@ -352,7 +315,6 @@
           </div>
         </div>
 
-        <!-- ==================== LEMBAR DOKUMEN CETAK A4 PREVIEW ==================== -->
         <div id="printContainer" class="overflow-x-auto custom-scrollbar pb-2">
           <div id="rk_pdfPrintArea" class="w-[1100px] 2xl:w-full max-w-[1300px] mx-auto bg-white p-7 sm:p-10 shadow-xl border border-slate-300 print-area rounded-sm">
             
@@ -426,13 +388,12 @@
           </div>
         </div>
 
-        <!-- ==================== BAGIAN SIMPAN & SELESAI (BAWAH) ==================== -->
         <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 no-print">
           <div>
             <h4 class="text-sm font-bold text-slate-800 flex items-center gap-2">
               <i class="fa-solid fa-box-archive text-emerald-600"></i> Simpan Rencana Kerja ke Arsip Selesai
             </h4>
-            <p class="text-xs text-slate-500 mt-1">Setelah diklik, lembar rencana kerja ini akan diarsipkan secara permanen dan formulir otomatis kembali bersih.</p>
+            <p class="text-xs text-slate-500 mt-1">Setelah diklik, lembar rencana kerja ini akan diarsipkan ke cloud dan formulir kembali bersih.</p>
           </div>
           <div class="flex items-center gap-2 w-full sm:w-auto">
             <button type="button" onclick="rk_clearAllData()" class="w-full sm:w-auto px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl border border-slate-300 transition flex items-center justify-center gap-1.5">
@@ -445,9 +406,6 @@
         </div>
       </section>
 
-      <!-- ========================================================================= -->
-      <!-- SECTION: ARSIP RENCANA KERJA TERSIMPAN                                   -->
-      <!-- ========================================================================= -->
       <section id="view-rkArchive" class="hidden space-y-4">
         <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
           <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5 border-b pb-4">
@@ -455,7 +413,7 @@
               <h3 class="font-bold text-sm sm:text-base text-slate-800 flex items-center gap-2">
                 <i class="fa-solid fa-box-archive text-emerald-600"></i> Daftar Rencana Kerja Tersimpan (Selesai)
               </h3>
-              <p class="text-xs text-slate-400 mt-0.5">Seluruh berkas rencana kerja yang telah disimpan. Dapat dilihat kembali, dicetak, atau dimuat ulang.</p>
+              <p class="text-xs text-slate-400 mt-0.5">Seluruh berkas rencana kerja yang telah disimpan di cloud. Dapat dilihat, dicetak, atau dimuat ulang.</p>
             </div>
             <input type="text" id="archiveSearchInput" oninput="filterRKArchive()" placeholder="Cari arsip mold..." class="px-3 py-2 border border-slate-300 rounded-lg text-xs w-full sm:w-64 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
           </div>
@@ -464,7 +422,6 @@
         </div>
       </section>
 
-      <!-- Section Sheet View -->
       <section id="view-sheetView" class="hidden space-y-4">
         <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
           <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5 border-b pb-4">
@@ -481,7 +438,6 @@
         </div>
       </section>
 
-      <!-- Section Riwayat -->
       <section id="view-historyView" class="hidden space-y-4">
         <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
           <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b pb-3 mb-4 gap-2">
@@ -525,7 +481,6 @@
     </nav>
   </main>
 
-  <!-- MODAL TAMBAH PROYEK WORKSHOP -->
   <div id="modalAddProject" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center hidden p-0 sm:p-4">
     <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-md p-5 sm:p-6 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b pb-3 mb-4">
@@ -573,7 +528,6 @@
     </div>
   </div>
 
-  <!-- MODAL CHECKPOINTS WORKSHOP TRACKER -->
   <div id="modalCheckpoints" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center hidden p-0 sm:p-4">
     <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] sm:max-h-[90vh] flex flex-col overflow-hidden">
       <div class="p-4 sm:p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50">
@@ -589,7 +543,6 @@
 
       <div class="p-4 sm:p-6 overflow-y-auto flex-1 custom-scrollbar space-y-5 sm:space-y-6">
         
-        <!-- Form Tambah Checkpoint Baru Tracker -->
         <div class="bg-indigo-50/60 p-3.5 sm:p-4 rounded-xl border border-indigo-100">
           <h4 class="text-xs font-bold text-indigo-900 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
             <i class="fa-solid fa-plus-circle text-indigo-600"></i> Tambah Uraian Checkpoint Baru
@@ -680,7 +633,6 @@
     </div>
   </div>
 
-  <!-- MODAL INPUT LOG HARIAN BERTANGGAL & PILIHAN SHIFT -->
   <div id="modalDailyLog" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center hidden p-0 sm:p-4">
     <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-sm p-5 overflow-hidden">
       <div class="flex justify-between items-center border-b pb-3 mb-3">
@@ -735,7 +687,6 @@
     </div>
   </div>
 
-  <!-- MODAL DETAIL RINCIAN PENGERJAAN HARIAN -->
   <div id="modalDailyBreakdown" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4" onclick="closeModal('modalDailyBreakdown')">
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 overflow-hidden" onclick="event.stopPropagation()">
       <div class="flex justify-between items-center border-b pb-3 mb-3">
@@ -779,7 +730,6 @@
     </div>
   </div>
 
-  <!-- MODAL LIGHTBOX FOTO -->
   <div id="modalPhotoViewer" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4" onclick="closeModal('modalPhotoViewer')">
     <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-5 overflow-hidden" onclick="event.stopPropagation()">
       <div class="flex justify-between items-center border-b pb-3 mb-4">
@@ -819,9 +769,22 @@
   </div>
 
   <script>
-    // =========================================================================
-    // 1. DATA UTAMA WORKSHOP & ARSIP
-    // =========================================================================
+    const API_URL = '/api/mold';
+    let saveTimeout = null;
+
+    function setSyncStatus(text, colorClass) {
+      const topBadge = document.getElementById('topbarSyncBadge');
+      const sideBadge = document.getElementById('sidebarSyncBadge');
+      if (topBadge) {
+        topBadge.innerText = `• ${text}`;
+        topBadge.className = `${colorClass} font-bold text-xs flex items-center gap-1`;
+      }
+      if (sideBadge) {
+        sideBadge.innerHTML = `<i class="fa-solid fa-circle text-[7px] animate-pulse"></i> ${text}`;
+        sideBadge.className = `${colorClass} font-semibold text-[11px] flex items-center gap-1.5`;
+      }
+    }
+
     let projects = JSON.parse(localStorage.getItem('workshop_projects')) || [];
     let historyLogs = JSON.parse(localStorage.getItem('workshop_logs')) || [];
     let savedRencanaKerja = JSON.parse(localStorage.getItem('workshop_rk_archive')) || [];
@@ -1083,7 +1046,7 @@
       if (!cp) return;
 
       document.getElementById('breakdownTaskTitle').innerText = `[${proj.name}] ${cp.task}`;
-      document.getElementById('breakdownTaskSubtitle').innerText = `Kategori: ${cp.category} &bull; Proses: ${cp.process} &bull; Est: ${cp.estJam} Jam`;
+      document.getElementById('breakdownTaskSubtitle').innerText = `Kategori: ${cp.category} • Proses: ${cp.process} • Est: ${cp.estJam} Jam`;
       document.getElementById('breakdownTotalHours').innerText = `${cp.actualJam} Jam (${cp.progress}%)`;
 
       document.getElementById('breakdownAddLogBtn').onclick = () => {
@@ -1255,7 +1218,6 @@
         else if (project.status === 'scheduled') scheduledContainer.innerHTML += cardHTML;
         else if (project.status === 'completed') completedContainer.innerHTML += cardHTML;
 
-        // Grouping kategori Sheet View
         const groupedCategories = {};
         project.checkpoints.forEach(cp => {
           const cat = cp.category || 'Lainnya';
@@ -1331,7 +1293,7 @@
                       Bagian: ${catName}
                     </span>
                     <span class="text-[11px] text-slate-500">
-                      (${catDone}/${catTotal} Selesai &bull; Est: <strong>${catEst}j</strong> &bull; Aktual: <strong>${catAct}j</strong>)
+                      (${catDone}/${catTotal} Selesai • Est: <strong>${catEst}j</strong> • Aktual: <strong>${catAct}j</strong>)
                     </span>
                   </div>
                   <div class="flex items-center gap-3">
@@ -1382,7 +1344,7 @@
                     ${statusBadge}
                   </div>
                   <p class="text-xs text-slate-500 mt-0.5">
-                    Target Total: <strong>${project.targetJam || totalEst} Jam</strong> &bull; Aktual: <strong>${totalAct} Jam</strong> &bull; Checkpoint: <strong>${doneCP}/${totalCP} Selesai</strong>
+                    Target Total: <strong>${project.targetJam || totalEst} Jam</strong> • Aktual: <strong>${totalAct} Jam</strong> • Checkpoint: <strong>${doneCP}/${totalCP} Selesai</strong>
                   </p>
                 </div>
               </div>
@@ -1806,9 +1768,6 @@
       document.body.removeChild(link);
     }
 
-    // =========================================================================
-    // 2. LOGIKA & FUNGSI RENCANA KERJA & PENYIMPANAN ARSIP
-    // =========================================================================
     const RK_STORAGE_KEY_CHECKPOINTS = 'modifikasi_mold_checkpoints';
     const RK_STORAGE_KEY_INFO = 'modifikasi_mold_info';
 
@@ -1832,6 +1791,36 @@
     let rk_checkpoints = JSON.parse(localStorage.getItem(RK_STORAGE_KEY_CHECKPOINTS)) || [];
     const rk_categoryOrder = ["Cavity", "Core", "Sleder", "Base Mold", "Ejector", "Spoting", "Lainnya"];
 
+    async function rk_loadCloudData() {
+      setSyncStatus('Memuat Cloud...', 'text-amber-400');
+      try {
+        const res = await fetch(API_URL);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && (data.mold_name || data.checkpoints)) {
+            document.getElementById('rk_moldName').value = data.mold_name || '';
+            document.getElementById('rk_moldJob').value = data.job_desc || '';
+            document.getElementById('rk_moldStartDate').value = data.start_date || '';
+            document.getElementById('rk_moldEndDate').value = data.end_date || '';
+
+            if (data.checkpoints) {
+              rk_checkpoints = typeof data.checkpoints === 'string' ? JSON.parse(data.checkpoints) : data.checkpoints;
+              localStorage.setItem(RK_STORAGE_KEY_CHECKPOINTS, JSON.stringify(rk_checkpoints));
+            }
+            setSyncStatus('Tersimpan di Cloud', 'text-emerald-400');
+            rk_renderAll();
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("Gagal memuat dari API Cloud, membaca cache lokal:", err);
+      }
+
+      rk_loadSavedLocalInfo();
+      setSyncStatus('Tersimpan di Cloud', 'text-emerald-400');
+      rk_renderAll();
+    }
+
     function rk_saveAllData() {
       localStorage.setItem(RK_STORAGE_KEY_CHECKPOINTS, JSON.stringify(rk_checkpoints));
       const info = {
@@ -1841,9 +1830,38 @@
         moldEndDate: document.getElementById('rk_moldEndDate').value
       };
       localStorage.setItem(RK_STORAGE_KEY_INFO, JSON.stringify(info));
+
+      setSyncStatus('Menyimpan...', 'text-amber-400');
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(async () => {
+        try {
+          const payload = {
+            moldName: info.moldName,
+            moldJob: info.moldJob,
+            moldStartDate: info.moldStartDate,
+            moldEndDate: info.moldEndDate,
+            checkpoints: rk_checkpoints
+          };
+
+          const res = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (res.ok) {
+            setSyncStatus('Tersimpan di Cloud', 'text-emerald-400');
+          } else {
+            setSyncStatus('Tersimpan di Lokal', 'text-amber-400');
+          }
+        } catch (err) {
+          console.error("Gagal sinkronisasi ke server:", err);
+          setSyncStatus('Tersimpan di Lokal', 'text-amber-400');
+        }
+      }, 500);
     }
 
-    function rk_loadSavedInfo() {
+    function rk_loadSavedLocalInfo() {
       const saved = localStorage.getItem(RK_STORAGE_KEY_INFO);
       if (saved) {
         try {
@@ -1858,7 +1876,7 @@
       }
     }
 
-    function rk_clearAllData(silent = false) {
+    async function rk_clearAllData(silent = false) {
       if (silent || confirm("Yakin ingin mengosongkan seluruh formulir dan checkpoint Rencana Kerja?")) {
         rk_checkpoints = [];
         localStorage.removeItem(RK_STORAGE_KEY_CHECKPOINTS);
@@ -1870,6 +1888,7 @@
         document.getElementById('rk_moldEndDate').value = '';
 
         rk_renderAll();
+        rk_saveAllData();
         if (!silent) showToast("Formulir rencana kerja berhasil dikosongkan.");
       }
     }
@@ -1905,15 +1924,15 @@
       document.getElementById('rk_cpTask').value = '';
       document.getElementById('rk_cpEst').value = '';
 
-      rk_saveAllData();
       rk_renderAll();
+      rk_saveAllData();
       showToast("Checkpoint Rencana Kerja ditambahkan!");
     }
 
     function rk_removeCheckpoint(id) {
       rk_checkpoints = rk_checkpoints.filter(cp => cp.id !== id);
-      rk_saveAllData();
       rk_renderAll();
+      rk_saveAllData();
       showToast("Checkpoint dihapus.");
     }
 
@@ -1969,7 +1988,6 @@
         grouped[cp.category].push(cp);
       });
 
-      // 1. Render Live Edit
       const liveBody = document.getElementById('rk_liveTableBody');
       liveBody.innerHTML = '';
       document.getElementById('rk_badgeCount').innerText = `${rk_checkpoints.length} Item`;
@@ -2011,7 +2029,6 @@
         });
       }
 
-      // 2. Render Header Informasi Mold
       const moldName = document.getElementById('rk_moldName').value.trim() || '-';
       const moldJob = document.getElementById('rk_moldJob').value.trim() || '-';
       const startDate = document.getElementById('rk_moldStartDate').value || '-';
@@ -2022,7 +2039,6 @@
       document.getElementById('rk_outStartDate').innerText = startDate;
       document.getElementById('rk_outEndDate').innerText = endDate;
 
-      // 3. Render Tabel Dokumen Preview Cetak PDF
       const pdfBody = document.getElementById('rk_pdfTableBody');
       pdfBody.innerHTML = '';
 
@@ -2082,7 +2098,6 @@
         });
       }
 
-      // Update Total & HK
       document.getElementById('rk_pdfTotalJam').innerText = totalJam;
       document.getElementById('rk_pdfTotalBiaya').innerText = rk_formatRupiah(totalBiaya);
       
@@ -2096,9 +2111,6 @@
       window.print();
     }
 
-    // =========================================================================
-    // 3. FITUR SIMPAN & SELESAI RENCANA KERJA KE ARSIP
-    // =========================================================================
     function rk_saveToArchive() {
       const moldName = document.getElementById('rk_moldName').value.trim();
       const moldJob = document.getElementById('rk_moldJob').value.trim();
@@ -2144,9 +2156,7 @@
         message: `Menyimpan Rencana Kerja [${archiveItem.moldName}] ke arsip selesai (${archiveItem.checkpoints.length} item, ${totalJam} Jam).`
       });
 
-      // Kembalikan form ke semula (bersih)
       rk_clearAllData(true);
-
       showToast(`Rencana Kerja "${archiveItem.moldName}" berhasil disimpan ke arsip selesai!`);
       renderRKArchive();
     }
@@ -2187,7 +2197,7 @@
 
               <div class="text-[11px] text-slate-400 flex items-center justify-between pt-1">
                 <span>Disimpan: ${item.savedAt}</span>
-                <span>${item.startDate} &bull; ${item.endDate}</span>
+                <span>${item.startDate} • ${item.endDate}</span>
               </div>
             </div>
 
@@ -2221,6 +2231,7 @@
       document.getElementById('rk_moldEndDate').value = item.endDate !== '-' ? item.endDate : '';
 
       rk_checkpoints = JSON.parse(JSON.stringify(item.checkpoints || []));
+      rk_renderAll();
       rk_saveAllData();
 
       switchTab('rencanaKerja');
@@ -2255,18 +2266,16 @@
       });
     }
 
-    // Listener input mold rencana kerja
     ['rk_moldName', 'rk_moldJob', 'rk_moldStartDate', 'rk_moldEndDate'].forEach(id => {
       document.getElementById(id).addEventListener('input', () => {
-        rk_saveAllData();
         rk_renderAll();
+        rk_saveAllData();
       });
     });
 
-    // Inisialisasi
-    rk_loadSavedInfo();
     rk_previewRateNotice();
     renderDashboard();
+    rk_loadCloudData();
   </script>
 </body>
 </html>
