@@ -28,6 +28,9 @@ module.exports = async (req, res) => {
         start_date VARCHAR(50),
         end_date VARCHAR(50),
         checkpoints JSON,
+        all_projects JSON,
+        history_logs JSON,
+        rk_archive JSON,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )
     `);
@@ -39,24 +42,33 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === 'POST') {
-      const { moldName, moldJob, moldStartDate, moldEndDate, checkpoints } = req.body;
+      const { moldName, moldJob, moldStartDate, moldEndDate, checkpoints, allProjects, historyLogs, rkArchive } = req.body;
+      
       const sql = `
-        INSERT INTO mold_projects (id, mold_name, job_desc, start_date, end_date, checkpoints)
-        VALUES ('active-mold', ?, ?, ?, ?, ?)
+        INSERT INTO mold_projects (id, mold_name, job_desc, start_date, end_date, checkpoints, all_projects, history_logs, rk_archive)
+        VALUES ('active-mold', ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
           mold_name = VALUES(mold_name),
           job_desc = VALUES(job_desc),
           start_date = VALUES(start_date),
           end_date = VALUES(end_date),
-          checkpoints = VALUES(checkpoints)
+          checkpoints = VALUES(checkpoints),
+          all_projects = VALUES(all_projects),
+          history_logs = VALUES(history_logs),
+          rk_archive = VALUES(rk_archive)
       `;
+      
       await connection.query(sql, [
         moldName || '',
         moldJob || '',
         moldStartDate || '',
         moldEndDate || '',
-        JSON.stringify(checkpoints || [])
+        JSON.stringify(checkpoints || []),
+        JSON.stringify(allProjects || []),
+        JSON.stringify(historyLogs || []),
+        JSON.stringify(rkArchive || [])
       ]);
+      
       await connection.end();
       return res.status(200).json({ success: true });
     }
