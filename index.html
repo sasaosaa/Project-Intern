@@ -1,0 +1,2272 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Workshop Mold Management & Rencana Kerja</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+    /* CSS Khusus Cetak Dokumen Rencana Kerja */
+    .sheet-table th, .sheet-table td {
+      border: 1.5px solid #111827;
+    }
+    .bg-total-yellow, .bg-total-yellow td {
+      background-color: #facc15 !important;
+    }
+
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #printContainer, #printContainer * {
+        visibility: visible;
+      }
+      #mainSidebar, header, nav, .no-print {
+        display: none !important;
+      }
+      #printContainer {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .print-area {
+        display: block !important;
+        border: none !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        width: 100% !important;
+        padding: 0 !important;
+      }
+      table {
+        page-break-inside: auto;
+        width: 100% !important;
+      }
+      tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+      }
+      @page {
+        size: A4 landscape;
+        margin: 8mm 10mm 8mm 10mm;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 flex h-screen overflow-hidden">
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toastNotif" class="fixed top-4 right-4 sm:top-5 sm:right-5 z-50 transform translate-x-[150%] transition-transform duration-300 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 text-xs font-semibold max-w-[90vw]">
+    <i class="fa-solid fa-circle-check text-base"></i>
+    <span id="toastMsg">Data berhasil disimpan!</span>
+  </div>
+
+  <!-- MOBILE OVERLAY BACKDROP -->
+  <div id="mobileSidebarBackdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-slate-900/60 z-30 hidden lg:hidden transition-opacity"></div>
+
+  <!-- SIDEBAR (KIRI) -->
+  <aside id="mainSidebar" class="fixed lg:static inset-y-0 left-0 z-40 w-64 bg-slate-900 text-white flex flex-col justify-between shadow-2xl lg:shadow-xl transform -translate-x-full lg:translate-x-0 transition-transform duration-300 flex-shrink-0 no-print">
+    <div>
+      <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-indigo-600 rounded-xl text-white font-bold text-base sm:text-lg shadow-md shadow-indigo-600/30">
+            <i class="fa-solid fa-industry"></i>
+          </div>
+          <div>
+            <h1 class="font-bold text-sm tracking-wide leading-tight">Workshop Hub</h1>
+            <p class="text-[10px] text-slate-400">Tooling & Mold Tracker</p>
+          </div>
+        </div>
+        <button onclick="toggleMobileSidebar()" class="lg:hidden text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <nav class="p-3 sm:p-4 space-y-1.5 overflow-y-auto max-h-[calc(100vh-160px)] custom-scrollbar">
+        <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-3 mb-2">Manajemen Proyek</div>
+        
+        <div>
+          <button onclick="toggleWorkshopMenu()" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-slate-800 text-indigo-400 hover:bg-slate-700/80 transition">
+            <span class="flex items-center gap-3 font-medium text-xs">
+              <i class="fa-solid fa-screwdriver-wrench"></i> Workshop
+            </span>
+            <i id="workshopArrow" class="fa-solid fa-chevron-down text-xs transition-transform duration-200"></i>
+          </button>
+          
+          <div id="workshopSubmenu" class="pl-3 pr-1 py-1.5 space-y-1">
+            <button onclick="switchTab('ongoing')" id="tabBtn-ongoing" class="w-full text-left px-3 py-2 rounded-md text-xs font-semibold transition flex items-center justify-between bg-indigo-600/20 text-indigo-300 border-l-2 border-indigo-500">
+              <span><i class="fa-solid fa-spinner fa-spin-pulse mr-2 text-[11px]"></i> Sedang Berjalan</span>
+              <span id="badgeOngoing" class="bg-indigo-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">0</span>
+            </button>
+            <button onclick="switchTab('scheduled')" id="tabBtn-scheduled" class="w-full text-left px-3 py-2 rounded-md text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center justify-between">
+              <span><i class="fa-regular fa-calendar-check mr-2 text-[11px]"></i> Terjadwal</span>
+              <span id="badgeScheduled" class="bg-slate-700 text-slate-300 text-[10px] px-2 py-0.5 rounded-full font-bold">0</span>
+            </button>
+            <button onclick="switchTab('completed')" id="tabBtn-completed" class="w-full text-left px-3 py-2 rounded-md text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center justify-between">
+              <span><i class="fa-solid fa-circle-check mr-2 text-[11px] text-emerald-400"></i> Selesai</span>
+              <span id="badgeCompleted" class="bg-emerald-900/60 text-emerald-300 border border-emerald-700 text-[10px] px-2 py-0.5 rounded-full font-bold">0</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- MENU RENCANA KERJA -->
+        <button onclick="switchTab('rencanaKerja')" id="tabBtn-rencanaKerja" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition text-xs font-medium">
+          <span class="flex items-center gap-3">
+            <i class="fa-solid fa-file-signature text-indigo-400"></i> Rencana Kerja
+          </span>
+          <span class="text-[9px] px-1.5 py-0.5 rounded bg-indigo-900/60 text-indigo-300 font-bold">Form</span>
+        </button>
+
+        <!-- MENU ARSIP RENCANA KERJA TERSIMPAN -->
+        <button onclick="switchTab('rkArchive')" id="tabBtn-rkArchive" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition text-xs font-medium">
+          <span class="flex items-center gap-3">
+            <i class="fa-solid fa-box-archive text-emerald-400"></i> Arsip Rencana Kerja
+          </span>
+          <span id="badgeRKArchive" class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] px-1.5 py-0.5 rounded font-bold">0</span>
+        </button>
+
+        <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-3 mt-4 mb-2">Monitoring & Data</div>
+
+        <button onclick="switchTab('sheetView')" id="tabBtn-sheetView" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition text-xs font-medium">
+          <i class="fa-solid fa-table-cells text-slate-400"></i> Sheet Data View
+        </button>
+
+        <button onclick="switchTab('historyView')" id="tabBtn-historyView" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition text-xs font-medium">
+          <span class="flex items-center gap-3">
+            <i class="fa-solid fa-clock-rotate-left text-slate-400"></i> Riwayat Aktivitas
+          </span>
+          <span id="badgeLogs" class="bg-indigo-950 text-indigo-400 border border-indigo-800 text-[10px] px-1.5 py-0.5 rounded font-bold">0</span>
+        </button>
+      </nav>
+    </div>
+
+    <div class="p-3 sm:p-4 border-t border-slate-800 text-xs text-slate-400">
+      <div class="flex items-center justify-between mb-2 sm:mb-3">
+        <span class="text-[11px]">Database:</span>
+        <span class="text-emerald-400 font-semibold text-[11px] flex items-center gap-1.5"><i class="fa-solid fa-circle text-[7px] animate-pulse"></i> Tersimpan Otomatis</span>
+      </div>
+      <button onclick="exportDataCSV()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-center transition flex items-center justify-center gap-2 font-medium text-xs">
+        <i class="fa-solid fa-download"></i> Ekspor CSV
+      </button>
+    </div>
+  </aside>
+
+  <!-- KONTEN UTAMA -->
+  <main class="flex-1 flex flex-col h-screen overflow-hidden w-full">
+    
+    <!-- TOPBAR -->
+    <header class="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between shadow-xs no-print">
+      <div class="flex items-center gap-3">
+        <button onclick="toggleMobileSidebar()" class="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 focus:outline-none">
+          <i class="fa-solid fa-bars text-lg"></i>
+        </button>
+        <div>
+          <h2 id="pageTitle" class="text-base sm:text-lg font-bold text-slate-800 leading-tight">Workshop - Proyek Sedang Berjalan</h2>
+          <p id="pageSubtitle" class="text-[11px] sm:text-xs text-slate-500 hidden sm:block">Pantau mold yang sedang dalam proses fabrikasi dan checklist checkpoint.</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btnHeaderAction" onclick="openAddProjectModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg shadow-sm flex items-center gap-1.5 sm:gap-2 transition whitespace-nowrap">
+          <i class="fa-solid fa-plus text-xs"></i> <span>Tambah Proyek</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- CONTENT AREA -->
+    <div class="flex-1 overflow-y-auto p-4 sm:p-6 pb-24 lg:pb-6 custom-scrollbar">
+      
+      <!-- Section Ongoing -->
+      <section id="view-ongoing">
+        <div id="ongoingCardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"></div>
+      </section>
+
+      <!-- Section Scheduled -->
+      <section id="view-scheduled" class="hidden">
+        <div id="scheduledCardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"></div>
+      </section>
+
+      <!-- Section Completed (Workshop Selesai) -->
+      <section id="view-completed" class="hidden">
+        <div id="completedCardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"></div>
+      </section>
+
+      <!-- ========================================================================= -->
+      <!-- SECTION: RENCANA KERJA MODIFIKASI MOLD                                   -->
+      <!-- ========================================================================= -->
+      <section id="view-rencanaKerja" class="hidden space-y-6">
+        
+        <!-- HEADER KONTROL FORM RENCANA KERJA -->
+        <div class="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-xs no-print">
+          <div>
+            <h3 class="text-sm sm:text-base font-bold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-file-signature text-indigo-600"></i> Formulir & Lembar Cetak Rencana Kerja
+            </h3>
+            <p class="text-xs text-slate-500">Susun estimasi biaya dan proses mesin. Setelah selesai, klik Simpan di bawah untuk mengarsipkan.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="rk_clearAllData()" class="px-3 py-2 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 text-xs font-semibold rounded-xl border border-slate-200 transition">
+              <i class="fa-solid fa-trash-can mr-1"></i> Reset
+            </button>
+            <button type="button" onclick="rk_previewPDF()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-1.5">
+              <i class="fa-solid fa-file-pdf"></i> Cetak PDF
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 1: FORM DATA AWAL MOLD -->
+        <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200 no-print">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-3.5 mb-4 gap-1.5">
+            <h4 class="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center font-bold">1</span>
+              Informasi Utama Mold
+            </h4>
+            <span class="text-xs text-slate-400">* Tanggal mulai & selesai opsional</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs sm:text-sm">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Nama Mold *</label>
+              <input type="text" id="rk_moldName" placeholder="Contoh: HAMBALAN LMG" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl font-bold text-slate-800 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Pengerjaan</label>
+              <input type="text" id="rk_moldJob" placeholder="Contoh: MODIFIKASI & REPAIR" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Tanggal Mulai</label>
+              <input type="date" id="rk_moldStartDate" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Tanggal Selesai</label>
+              <input type="date" id="rk_moldEndDate" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white">
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2: FORM TAMBAH CHECKPOINT RENCANA KERJA -->
+        <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200 no-print">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-3.5 mb-4 gap-1.5">
+            <h4 class="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center font-bold">2</span>
+              Input Checkpoint & Tarif Pengerjaan
+            </h4>
+            <span class="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+              <i class="fa-solid fa-circle-check"></i> Rumus HK = Total Jam / 20
+            </span>
+          </div>
+
+          <form id="rk_cpForm" onsubmit="rk_handleAddCheckpoint(event)" class="space-y-4 text-xs sm:text-sm">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3.5 items-end">
+              <div class="lg:col-span-3">
+                <label class="block font-semibold text-slate-700 mb-1">Kategori Bagian *</label>
+                <select id="rk_cpCategory" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-white font-medium text-xs sm:text-sm">
+                  <option value="Cavity">Cavity (Base Cavity)</option>
+                  <option value="Core">Core (Base Core)</option>
+                  <option value="Sleder">Sleder / Slider</option>
+                  <option value="Base Mold">Base Mold</option>
+                  <option value="Ejector">Ejector</option>
+                  <option value="Spoting">Spoting</option>
+                  <option value="Lainnya">Lainnya / Umum</option>
+                </select>
+              </div>
+
+              <div class="lg:col-span-4">
+                <label class="block font-semibold text-slate-700 mb-1">Uraian Pekerjaan *</label>
+                <input type="text" id="rk_cpTask" placeholder="Contoh: Hilangkan Flashing Cavity" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              </div>
+
+              <div class="lg:col-span-3">
+                <label class="block font-semibold text-slate-700 mb-1">Proses / Mesin *</label>
+                <select id="rk_cpProcess" onchange="rk_previewRateNotice()" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-white font-medium uppercase text-xs sm:text-sm">
+                  <option value="CNC">CNC (Rp 150.000/j)</option>
+                  <option value="MILLING">MILLING (Rp 50.000/j)</option>
+                  <option value="EDM">EDM (Rp 50.000/j)</option>
+                  <option value="BOR">BOR (Rp 50.000/j)</option>
+                  <option value="BUBUT">BUBUT (Rp 50.000/j)</option>
+                  <option value="LAS">LAS (Rp 20.000/j)</option>
+                  <option value="RAKIT/BONGKAR">RAKIT/BONGKAR (Rp 20.000/j)</option>
+                  <option value="POLESHING">POLES / POLESHING (Rp 20.000/j)</option>
+                  <option value="SPOTTING">SPOTTING (Rp 20.000/j)</option>
+                  <option value="SHOCK">SHOCK (Rp 20.000/j)</option>
+                  <option value="REAMER">REAMER (Rp 20.000/j)</option>
+                  <option value="LAS DAN MILLING">LAS DAN MILLING (Rp 50.000/j)</option>
+                  <option value="-">- (Manual/Check)</option>
+                </select>
+              </div>
+
+              <div class="lg:col-span-2">
+                <label class="block font-semibold text-slate-700 mb-1">Est Waktu (Jam) *</label>
+                <input type="number" id="rk_cpEst" step="0.5" min="0.5" placeholder="Jam" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+              <p id="rk_rateNote" class="text-xs text-slate-500 italic">Tarif acuan: Rp 150.000 / jam</p>
+              <button type="submit" class="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-sm text-xs sm:text-sm">
+                <i class="fa-solid fa-plus-circle"></i> Tambah Checkpoint
+              </button>
+            </div>
+          </form>
+
+          <!-- TABEL LIVE EDIT RENCANA KERJA -->
+          <div class="mt-5 border border-slate-200 rounded-xl overflow-hidden">
+            <div class="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center text-xs font-bold">
+              <span>Daftar Checkpoint Rencana Kerja</span>
+              <span id="rk_badgeCount" class="text-indigo-600 font-bold bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-full">0 Item</span>
+            </div>
+            <div class="overflow-x-auto custom-scrollbar">
+              <table class="w-full text-left text-xs whitespace-nowrap min-w-[650px]">
+                <thead class="bg-slate-100 text-slate-600 uppercase text-[11px] font-bold border-b">
+                  <tr>
+                    <th class="p-2.5">Kategori</th>
+                    <th class="p-2.5">Uraian Pekerjaan</th>
+                    <th class="p-2.5">Proses</th>
+                    <th class="p-2.5 text-center">Est (Jam)</th>
+                    <th class="p-2.5 text-right">Biaya / Jam</th>
+                    <th class="p-2.5 text-right">Total Biaya</th>
+                    <th class="p-2.5 text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="rk_liveTableBody" class="divide-y divide-slate-100 bg-white"></tbody>
+              </table>
+            </div>
+
+            <!-- WA BUTTON -->
+            <div class="p-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <p class="text-xs text-slate-500 flex items-center gap-2">
+                <i class="fa-solid fa-circle-info text-indigo-500"></i>
+                Kirim daftar checklist pengerjaan ke grup / personal WhatsApp.
+              </p>
+              <button type="button" onclick="rk_sendCheckPointsToWA()" class="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm">
+                <i class="fa-brands fa-whatsapp text-sm"></i> Kirim ke WhatsApp
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== LEMBAR DOKUMEN CETAK A4 PREVIEW ==================== -->
+        <div id="printContainer" class="overflow-x-auto custom-scrollbar pb-2">
+          <div id="rk_pdfPrintArea" class="w-[1100px] 2xl:w-full max-w-[1300px] mx-auto bg-white p-7 sm:p-10 shadow-xl border border-slate-300 print-area rounded-sm">
+            
+            <h2 class="text-center font-extrabold text-base sm:text-lg tracking-wider uppercase mb-6 text-black">
+              RENCANA KERJA MODIFIKASI & PEMBUATAN MOLD
+            </h2>
+
+            <div class="grid grid-cols-12 text-xs sm:text-sm font-bold text-black uppercase mb-5 leading-relaxed">
+              <div class="col-span-4 space-y-1">
+                <div class="flex">
+                  <span class="w-32 flex-shrink-0">NAMA MOLD</span>
+                  <span class="mr-2">:</span>
+                  <span id="rk_outMoldName" class="font-extrabold">-</span>
+                </div>
+                <div class="flex">
+                  <span class="w-32 flex-shrink-0">PENGERJAAN</span>
+                  <span class="mr-2">:</span>
+                  <span id="rk_outMoldJob" class="font-normal">-</span>
+                </div>
+              </div>
+
+              <div class="col-span-4 space-y-1">
+                <div class="flex">
+                  <span class="w-40 flex-shrink-0">START / TANGGAL</span>
+                  <span class="mr-2">:</span>
+                  <span id="rk_outStartDate" class="font-normal">-</span>
+                </div>
+                <div class="flex">
+                  <span class="w-40 flex-shrink-0">ESTIMASI HK</span>
+                  <span class="mr-2">:</span>
+                  <span id="rk_outHK" class="font-extrabold">0,0 HK</span>
+                </div>
+              </div>
+
+              <div class="col-span-4 space-y-1">
+                <div class="flex">
+                  <span class="w-44 flex-shrink-0">SELESAI / TANGGAL</span>
+                  <span class="mr-2">:</span>
+                  <span id="rk_outEndDate" class="font-normal">-</span>
+                </div>
+              </div>
+            </div>
+
+            <table class="w-full sheet-table text-xs sm:text-sm border-collapse text-black">
+              <thead>
+                <tr class="font-extrabold uppercase text-center bg-slate-50">
+                  <th class="p-2 w-12 text-center">NO</th>
+                  <th class="p-2 text-center">URAIAN PEKERJAAN</th>
+                  <th class="p-2 w-24 whitespace-nowrap text-center">PROSES</th>
+                  <th class="p-2 w-24 whitespace-nowrap text-center">ESTIMASI WAKTU (JAM)</th>
+                  <th class="p-2 w-36 whitespace-nowrap text-center">AKTUAL WAKTU (JAM) / BIAYA</th>
+                  <th class="p-2 w-36 text-center">PIC</th>
+                  <th class="p-2 w-52 text-center">ILUSTRASI</th>
+                </tr>
+              </thead>
+              <tbody id="rk_pdfTableBody"></tbody>
+              <tfoot>
+                <tr class="font-extrabold bg-total-yellow text-black" style="background-color: #facc15 !important;">
+                  <td colspan="3" class="p-2 text-left uppercase px-4 font-extrabold" style="background-color: #facc15 !important;">TOTAL</td>
+                  <td id="rk_pdfTotalJam" class="p-2 text-center font-bold" style="background-color: #facc15 !important;">0</td>
+                  <td id="rk_pdfTotalBiaya" class="p-2 text-right font-bold pr-3" style="background-color: #facc15 !important;">Rp 0</td>
+                  <td colspan="2" class="p-2" style="background-color: #facc15 !important;"></td>
+                </tr>
+                <tr class="font-bold bg-white text-black">
+                  <td colspan="3" class="p-2 text-left uppercase px-4">TOTAL HARI KERJA</td>
+                  <td id="rk_pdfTotalHK" class="p-2 text-center font-bold">0,0 HK</td>
+                  <td colspan="3" class="p-2"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- ==================== BAGIAN SIMPAN & SELESAI (BAWAH) ==================== -->
+        <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 no-print">
+          <div>
+            <h4 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-box-archive text-emerald-600"></i> Simpan Rencana Kerja ke Arsip Selesai
+            </h4>
+            <p class="text-xs text-slate-500 mt-1">Setelah diklik, lembar rencana kerja ini akan diarsipkan secara permanen dan formulir otomatis kembali bersih.</p>
+          </div>
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <button type="button" onclick="rk_clearAllData()" class="w-full sm:w-auto px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl border border-slate-300 transition flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-rotate-left"></i> Batal / Bersihkan
+            </button>
+            <button type="button" onclick="rk_saveToArchive()" class="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-md shadow-emerald-600/30">
+              <i class="fa-solid fa-floppy-disk"></i> Simpan & Selesai
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================================= -->
+      <!-- SECTION: ARSIP RENCANA KERJA TERSIMPAN                                   -->
+      <!-- ========================================================================= -->
+      <section id="view-rkArchive" class="hidden space-y-4">
+        <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5 border-b pb-4">
+            <div>
+              <h3 class="font-bold text-sm sm:text-base text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-box-archive text-emerald-600"></i> Daftar Rencana Kerja Tersimpan (Selesai)
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Seluruh berkas rencana kerja yang telah disimpan. Dapat dilihat kembali, dicetak, atau dimuat ulang.</p>
+            </div>
+            <input type="text" id="archiveSearchInput" oninput="filterRKArchive()" placeholder="Cari arsip mold..." class="px-3 py-2 border border-slate-300 rounded-lg text-xs w-full sm:w-64 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          
+          <div id="rkArchiveContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </div>
+      </section>
+
+      <!-- Section Sheet View -->
+      <section id="view-sheetView" class="hidden space-y-4">
+        <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5 border-b pb-4">
+            <div>
+              <h3 class="font-bold text-sm sm:text-base text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-layer-group text-indigo-600"></i> Rekapitulasi Part & Pengelompokan Kategori
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Dikelompokkan rapi per Mold, lalu per bagian komponen (Cavity, Core, Base Mold, dll) beserta shift kerja.</p>
+            </div>
+            <input type="text" id="sheetSearchInput" oninput="filterHierarchicalSheet()" placeholder="Cari part / kategori..." class="px-3 py-2 border border-slate-300 rounded-lg text-xs w-full sm:w-64 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          
+          <div id="hierarchicalContainer" class="space-y-4"></div>
+        </div>
+      </section>
+
+      <!-- Section Riwayat -->
+      <section id="view-historyView" class="hidden space-y-4">
+        <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b pb-3 mb-4 gap-2">
+            <div>
+              <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-clock-rotate-left text-indigo-600"></i> Riwayat Aktivitas & Perubahan
+              </h3>
+              <p class="text-xs text-slate-400">Catatan kronologis update progres, input jam harian bertanggal, shift, dan penyimpanan arsip.</p>
+            </div>
+            <button onclick="clearHistoryLogs()" class="px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-lg transition self-end sm:self-auto">
+              <i class="fa-solid fa-trash-can mr-1"></i> Bersihkan
+            </button>
+          </div>
+          <div id="historyLogList" class="space-y-2.5"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- BOTTOM BAR MOBILE -->
+    <nav class="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 px-2 py-2 flex justify-around items-center z-20 shadow-lg no-print">
+      <button onclick="switchTab('ongoing')" id="bottomBtn-ongoing" class="flex flex-col items-center justify-center flex-1 py-1 text-indigo-600 font-bold">
+        <i class="fa-solid fa-spinner text-base mb-0.5"></i>
+        <span class="text-[10px]">Berjalan</span>
+      </button>
+      <button onclick="switchTab('scheduled')" id="bottomBtn-scheduled" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-slate-700">
+        <i class="fa-regular fa-calendar-check text-base mb-0.5"></i>
+        <span class="text-[10px]">Terjadwal</span>
+      </button>
+      <button onclick="switchTab('completed')" id="bottomBtn-completed" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-slate-700">
+        <i class="fa-solid fa-circle-check text-base mb-0.5"></i>
+        <span class="text-[10px]">Selesai</span>
+      </button>
+      <button onclick="switchTab('rencanaKerja')" id="bottomBtn-rencanaKerja" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-slate-700">
+        <i class="fa-solid fa-file-signature text-base mb-0.5"></i>
+        <span class="text-[10px]">Rencana</span>
+      </button>
+      <button onclick="switchTab('rkArchive')" id="bottomBtn-rkArchive" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-slate-700">
+        <i class="fa-solid fa-box-archive text-base mb-0.5"></i>
+        <span class="text-[10px]">Arsip</span>
+      </button>
+    </nav>
+  </main>
+
+  <!-- MODAL TAMBAH PROYEK WORKSHOP -->
+  <div id="modalAddProject" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center hidden p-0 sm:p-4">
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-md p-5 sm:p-6 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b pb-3 mb-4">
+        <h3 class="text-base font-bold text-slate-800">Tambah Proyek Baru</h3>
+        <button type="button" onclick="closeModal('modalAddProject')" class="text-slate-400 hover:text-slate-600 text-lg p-1"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      
+      <form id="formAddProject" onsubmit="handleSaveProject(event)" class="space-y-3.5 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Nama Part / Mold *</label>
+          <input type="text" id="projName" placeholder="Contoh: LMG / BASE MOLD / 101M" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Status Proyek *</label>
+            <select id="projStatus" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white">
+              <option value="ongoing">Sedang Berjalan</option>
+              <option value="scheduled">Terjadwal</option>
+              <option value="completed">Selesai</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Hari Kerja (HK)</label>
+            <input type="number" id="projHK" placeholder="15" min="1" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Target Total Jam</label>
+            <input type="number" id="projTargetJam" placeholder="300" min="1" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Tanggal Mulai</label>
+            <input type="date" id="projStartDate" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-4 border-t">
+          <button type="button" onclick="closeModal('modalAddProject')" class="px-4 py-2 border border-slate-300 rounded-lg font-medium text-slate-600 hover:bg-slate-50">Batal</button>
+          <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition">Simpan Proyek</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL CHECKPOINTS WORKSHOP TRACKER -->
+  <div id="modalCheckpoints" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center hidden p-0 sm:p-4">
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] sm:max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="p-4 sm:p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+        <div>
+          <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+            <h3 id="modalProjTitle" class="text-sm sm:text-base font-bold text-slate-800">Detail Checkpoint Proyek</h3>
+            <button id="modalProjBadgeBtn" onclick="toggleCurrentProjectStatus()" title="Klik untuk ubah status proyek" class="text-[10px] px-2.5 py-1 rounded-full font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"></button>
+          </div>
+          <p id="modalProjSubtitle" class="text-[11px] sm:text-xs text-slate-500 mt-0.5"></p>
+        </div>
+        <button onclick="closeModal('modalCheckpoints')" class="text-slate-400 hover:text-slate-600 text-lg p-1"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="p-4 sm:p-6 overflow-y-auto flex-1 custom-scrollbar space-y-5 sm:space-y-6">
+        
+        <!-- Form Tambah Checkpoint Baru Tracker -->
+        <div class="bg-indigo-50/60 p-3.5 sm:p-4 rounded-xl border border-indigo-100">
+          <h4 class="text-xs font-bold text-indigo-900 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+            <i class="fa-solid fa-plus-circle text-indigo-600"></i> Tambah Uraian Checkpoint Baru
+          </h4>
+          <form id="formAddCheckpoint" onsubmit="handleSaveCheckpoint(event)" class="space-y-3 text-xs">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 items-end">
+              <div>
+                <label class="block font-semibold text-slate-600 mb-1">Kategori</label>
+                <select id="cpCategory" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg bg-white">
+                  <option value="Cavity">Cavity</option>
+                  <option value="Core">Core</option>
+                  <option value="Sleder">Sleder</option>
+                  <option value="Base Mold">Base Mold</option>
+                  <option value="Ejector">Ejector</option>
+                  <option value="Lainnya">Lainnya</option>
+                </select>
+              </div>
+              <div class="lg:col-span-2">
+                <label class="block font-semibold text-slate-600 mb-1">Uraian Pekerjaan *</label>
+                <input type="text" id="cpTask" placeholder="Contoh: Bongkar / Roughing cavity" required class="w-full px-2.5 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-600 mb-1">Proses/Mesin</label>
+                <input type="text" id="cpProcess" placeholder="CNC / EDM / Milling" required class="w-full px-2.5 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-600 mb-1">Est (Jam)</label>
+                <input type="number" id="cpEst" placeholder="Jam" min="1" required class="w-full px-2.5 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-indigo-100/60">
+              <div>
+                <label class="block font-semibold text-slate-600 mb-1"><i class="fa-regular fa-image text-slate-400 mr-1"></i> Foto Awal / Sebelum</label>
+                <input type="file" id="cpPhotoBefore" accept="image/*" class="w-full text-[11px] file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200 cursor-pointer">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-600 mb-1"><i class="fa-solid fa-image text-emerald-500 mr-1"></i> Foto Sesudah / Selesai</label>
+                <input type="file" id="cpPhotoAfter" accept="image/*" class="w-full text-[11px] file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200 cursor-pointer">
+              </div>
+            </div>
+
+            <div class="flex justify-end pt-1">
+              <button type="submit" class="w-full sm:w-auto px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold shadow-xs transition">
+                + Tambah Checkpoint
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wide">Daftar Checkpoint & Foto Hasil</h4>
+            <span class="text-[10px] sm:text-[11px] text-slate-400">Klik kolom Aktual untuk rincian harian & shift kerja</span>
+          </div>
+          <div class="overflow-x-auto border border-slate-200 rounded-xl">
+            <table class="w-full text-left border-collapse text-xs whitespace-nowrap">
+              <thead class="bg-slate-100 text-slate-600 font-bold border-b">
+                <tr>
+                  <th class="p-2.5 sm:p-3">Kategori</th>
+                  <th class="p-2.5 sm:p-3">Uraian Pekerjaan</th>
+                  <th class="p-2.5 sm:p-3">Mesin</th>
+                  <th class="p-2.5 sm:p-3 text-center">Foto</th>
+                  <th class="p-2.5 sm:p-3 text-center">Est (Jam)</th>
+                  <th class="p-2.5 sm:p-3 text-center">Aktual Total</th>
+                  <th class="p-2.5 sm:p-3 text-center">Progress</th>
+                  <th class="p-2.5 sm:p-3 text-center">Status</th>
+                  <th class="p-2.5 sm:p-3 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="checkpointTableBody" class="divide-y divide-slate-100 bg-white"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-3.5 sm:p-4 border-t border-slate-200 flex flex-col-reverse sm:flex-row justify-between items-center bg-slate-50 gap-2">
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <button id="modalSwitchStatusBtn" onclick="toggleCurrentProjectStatus()" class="px-4 py-2 border border-slate-300 hover:bg-white text-slate-700 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-2"></button>
+          <button id="modalMarkCompleteBtn" onclick="markCurrentProjectCompleted()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-circle-check"></i> Tandai Proyek Selesai
+          </button>
+        </div>
+        <button onclick="closeModal('modalCheckpoints')" class="w-full sm:w-auto px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-lg">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL INPUT LOG HARIAN BERTANGGAL & PILIHAN SHIFT -->
+  <div id="modalDailyLog" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center hidden p-0 sm:p-4">
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-sm p-5 overflow-hidden">
+      <div class="flex justify-between items-center border-b pb-3 mb-3">
+        <h3 class="text-sm font-bold text-slate-800">Input Jam Harian & Foto</h3>
+        <button onclick="closeModal('modalDailyLog')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      
+      <form id="formDailyLog" onsubmit="handleSaveDailyLog(event)" class="space-y-3 text-xs">
+        <input type="hidden" id="logCPId">
+        <input type="hidden" id="logProjId">
+        
+        <div>
+          <span class="text-slate-400 block text-[11px]">Nama Pekerjaan:</span>
+          <p id="logTaskName" class="font-bold text-slate-800 text-xs mt-0.5 break-words"></p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Tanggal *</label>
+            <input type="date" id="logDate" required class="w-full px-2.5 py-2 border border-slate-300 rounded-lg">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Shift Kerja *</label>
+            <select id="logShift" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg bg-white font-medium">
+              <option value="Pagi">Pagi</option>
+              <option value="Sore">Sore</option>
+              <option value="Malam">Malam</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Tambahan Jam Kerja (Jam) *</label>
+          <input type="number" id="logHours" step="0.5" placeholder="Contoh: 4" min="0.5" required class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1"><i class="fa-solid fa-camera text-indigo-500 mr-1"></i> Update Foto Sesudah / Selesai</label>
+          <input type="file" id="logPhotoAfter" accept="image/*" class="w-full text-[11px] file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200 cursor-pointer">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Catatan / Keterangan</label>
+          <input type="text" id="logNote" placeholder="Contoh: Pengerjaan slot pin" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t">
+          <button type="button" onclick="closeModal('modalDailyLog')" class="px-3 py-1.5 border border-slate-300 rounded-lg text-slate-600">Batal</button>
+          <button type="submit" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg">Simpan Progres</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL DETAIL RINCIAN PENGERJAAN HARIAN -->
+  <div id="modalDailyBreakdown" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4" onclick="closeModal('modalDailyBreakdown')">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 overflow-hidden" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center border-b pb-3 mb-3">
+        <div>
+          <h4 id="breakdownTaskTitle" class="font-bold text-slate-800 text-sm">Rincian Jam Multi-Hari & Shift</h4>
+          <p id="breakdownTaskSubtitle" class="text-xs text-slate-500"></p>
+        </div>
+        <button onclick="closeModal('modalDailyBreakdown')" class="text-slate-400 hover:text-slate-600 text-lg p-1"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-3">
+        <div class="flex justify-between items-center bg-indigo-50/70 p-3 rounded-xl border border-indigo-100">
+          <span class="text-xs text-slate-600 font-medium">Akumulasi Aktual:</span>
+          <span id="breakdownTotalHours" class="text-sm font-bold text-indigo-700">0 Jam</span>
+        </div>
+
+        <div class="overflow-y-auto max-h-64 custom-scrollbar border border-slate-200 rounded-xl">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-100 text-slate-600 font-bold border-b">
+              <tr>
+                <th class="p-2.5">Tanggal</th>
+                <th class="p-2.5">Shift</th>
+                <th class="p-2.5 text-center">Durasi</th>
+                <th class="p-2.5">Catatan</th>
+                <th class="p-2.5 text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="breakdownTableBody" class="divide-y divide-slate-100 bg-white"></tbody>
+          </table>
+        </div>
+
+        <div class="flex justify-between items-center pt-2">
+          <button id="breakdownAddLogBtn" onclick="" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition">
+            + Tambah Hari / Shift Kerja
+          </button>
+          <button onclick="closeModal('modalDailyBreakdown')" class="px-4 py-1.5 bg-slate-800 text-white rounded-lg text-xs font-medium">
+            Tutup
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL LIGHTBOX FOTO -->
+  <div id="modalPhotoViewer" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4" onclick="closeModal('modalPhotoViewer')">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-5 overflow-hidden" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center border-b pb-3 mb-4">
+        <div>
+          <h4 id="photoViewerTitle" class="font-bold text-slate-800 text-sm">Dokumentasi Foto</h4>
+          <p id="photoViewerSubtitle" class="text-xs text-slate-500"></p>
+        </div>
+        <button onclick="closeModal('modalPhotoViewer')" class="text-slate-400 hover:text-slate-600 text-lg p-1"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center flex flex-col justify-between">
+          <span class="text-xs font-bold text-slate-600 block mb-2"><i class="fa-regular fa-image text-indigo-500 mr-1"></i> Foto Awal (Sebelum)</span>
+          <div class="w-full h-48 bg-slate-200 rounded-lg flex items-center justify-center overflow-hidden">
+            <img id="viewerImgBefore" src="" alt="Foto Awal" class="w-full h-full object-contain hidden">
+            <span id="viewerEmptyBefore" class="text-xs text-slate-400"><i class="fa-regular fa-image text-2xl block mb-1"></i> Belum ada foto awal</span>
+          </div>
+          <label class="mt-3 inline-block py-1.5 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold rounded-lg cursor-pointer transition">
+            <i class="fa-solid fa-upload mr-1"></i> Upload Foto Awal
+            <input type="file" accept="image/*" onchange="handleDirectUploadPhoto('before', this)" class="hidden">
+          </label>
+        </div>
+
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center flex flex-col justify-between">
+          <span class="text-xs font-bold text-slate-600 block mb-2"><i class="fa-solid fa-circle-check text-emerald-500 mr-1"></i> Foto Sesudah (Selesai)</span>
+          <div class="w-full h-48 bg-slate-200 rounded-lg flex items-center justify-center overflow-hidden">
+            <img id="viewerImgAfter" src="" alt="Foto Sesudah" class="w-full h-full object-contain hidden">
+            <span id="viewerEmptyAfter" class="text-xs text-slate-400"><i class="fa-regular fa-image text-2xl block mb-1"></i> Belum ada foto sesudah</span>
+          </div>
+          <label class="mt-3 inline-block py-1.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[11px] font-bold rounded-lg cursor-pointer transition">
+            <i class="fa-solid fa-upload mr-1"></i> Upload Foto Sesudah
+            <input type="file" accept="image/*" onchange="handleDirectUploadPhoto('after', this)" class="hidden">
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. DATA UTAMA WORKSHOP & ARSIP
+    // =========================================================================
+    let projects = JSON.parse(localStorage.getItem('workshop_projects')) || [];
+    let historyLogs = JSON.parse(localStorage.getItem('workshop_logs')) || [];
+    let savedRencanaKerja = JSON.parse(localStorage.getItem('workshop_rk_archive')) || [];
+
+    let currentTab = 'ongoing';
+    let activeProjectId = null;
+    let activeViewerCPId = null;
+
+    function readFileAsBase64(file) {
+      return new Promise((resolve) => {
+        if (!file) { resolve(null); return; }
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function toggleMobileSidebar() {
+      const sidebar = document.getElementById('mainSidebar');
+      const backdrop = document.getElementById('mobileSidebarBackdrop');
+      const isClosed = sidebar.classList.contains('-translate-x-full');
+      if (isClosed) {
+        sidebar.classList.remove('-translate-x-full');
+        backdrop.classList.remove('hidden');
+      } else {
+        sidebar.classList.add('-translate-x-full');
+        backdrop.classList.add('hidden');
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toastNotif');
+      document.getElementById('toastMsg').innerText = msg;
+      toast.classList.remove('translate-x-[150%]');
+      toast.classList.add('translate-x-0');
+      setTimeout(() => {
+        toast.classList.remove('translate-x-0');
+        toast.classList.add('translate-x-[150%]');
+      }, 3200);
+    }
+
+    function saveState(logEntry = null) {
+      if (logEntry) {
+        historyLogs.unshift(logEntry);
+        localStorage.setItem('workshop_logs', JSON.stringify(historyLogs));
+      }
+      try {
+        localStorage.setItem('workshop_projects', JSON.stringify(projects));
+      } catch (e) {
+        console.warn("Storage penuh:", e);
+        showToast("Penyimpanan lokal penuh. Gunakan foto dengan resolusi lebih kecil!");
+      }
+      renderDashboard();
+    }
+
+    function toggleWorkshopMenu() {
+      const submenu = document.getElementById('workshopSubmenu');
+      const arrow = document.getElementById('workshopArrow');
+      submenu.classList.toggle('hidden');
+      arrow.classList.toggle('rotate-180');
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      const views = ['ongoing', 'scheduled', 'completed', 'sheetView', 'historyView', 'rencanaKerja', 'rkArchive'];
+      views.forEach(v => {
+        const el = document.getElementById(`view-${v}`);
+        if (el) el.classList.add('hidden');
+      });
+
+      const navTabs = ['ongoing', 'scheduled', 'completed', 'sheetView', 'historyView', 'rencanaKerja', 'rkArchive'];
+      navTabs.forEach(t => {
+        const btn = document.getElementById(`tabBtn-${t}`);
+        if (btn) {
+          btn.className = "w-full text-left px-3 py-2.5 rounded-lg text-xs font-medium transition flex items-center justify-between " + 
+            (t === tab ? "bg-indigo-600/20 text-indigo-300 border-l-2 border-indigo-500 font-semibold" : "text-slate-400 hover:text-white hover:bg-slate-800");
+        }
+        const bBtn = document.getElementById(`bottomBtn-${t}`);
+        if (bBtn) {
+          bBtn.className = t === tab ? "flex flex-col items-center justify-center flex-1 py-1 text-indigo-600 font-bold" : "flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-slate-700";
+        }
+      });
+
+      const headerActionBtn = document.getElementById('btnHeaderAction');
+
+      if (tab === 'ongoing') {
+        document.getElementById('pageTitle').innerText = "Workshop - Proyek Sedang Berjalan";
+        document.getElementById('pageSubtitle').innerText = "Pantau mold yang sedang dalam proses fabrikasi dan checklist checkpoint.";
+        headerActionBtn.classList.remove('hidden');
+      } else if (tab === 'scheduled') {
+        document.getElementById('pageTitle').innerText = "Workshop - Proyek Terjadwal";
+        document.getElementById('pageSubtitle').innerText = "Daftar antrean pengerjaan mold. Klik 'Mulai Proyek' untuk memindahkannya.";
+        headerActionBtn.classList.remove('hidden');
+      } else if (tab === 'completed') {
+        document.getElementById('pageTitle').innerText = "Workshop - Proyek Selesai";
+        document.getElementById('pageSubtitle').innerText = "Daftar seluruh pekerjaan mold yang telah selesai dikerjakan.";
+        headerActionBtn.classList.add('hidden');
+      } else if (tab === 'sheetView') {
+        document.getElementById('pageTitle').innerText = "Sheet Data View (Kelompok Kategori Mold)";
+        document.getElementById('pageSubtitle').innerText = "Rangkuman bertingkat per mold dan per kelompok bagian (Cavity, Core, Sleder, dll).";
+        headerActionBtn.classList.add('hidden');
+      } else if (tab === 'historyView') {
+        document.getElementById('pageTitle').innerText = "Riwayat Aktivitas";
+        document.getElementById('pageSubtitle').innerText = "Catatan kronologis setiap pengisian dan perpindahan status mold.";
+        headerActionBtn.classList.add('hidden');
+      } else if (tab === 'rencanaKerja') {
+        document.getElementById('pageTitle').innerText = "Rencana Kerja Modifikasi & Pembuatan Mold";
+        document.getElementById('pageSubtitle').innerText = "Penyusunan checkpoint tarif pengerjaan mesin, estimasi HK, dan cetak PDF A4 Landscape.";
+        headerActionBtn.classList.add('hidden');
+        rk_renderAll();
+      } else if (tab === 'rkArchive') {
+        document.getElementById('pageTitle').innerText = "Arsip Rencana Kerja Tersimpan";
+        document.getElementById('pageSubtitle').innerText = "Daftar berkas rencana kerja mold yang telah difinalisasi dan disimpan.";
+        headerActionBtn.classList.add('hidden');
+        renderRKArchive();
+      }
+
+      document.getElementById(`view-${tab}`).classList.remove('hidden');
+
+      const sidebar = document.getElementById('mainSidebar');
+      if (!sidebar.classList.contains('-translate-x-full') && window.innerWidth < 1024) {
+        toggleMobileSidebar();
+      }
+
+      if (tab !== 'rencanaKerja' && tab !== 'rkArchive') {
+        renderDashboard();
+      }
+    }
+
+    function getNowTimestamp() {
+      const now = new Date();
+      return now.toISOString().slice(0, 10) + " " + now.toTimeString().slice(0, 5);
+    }
+
+    function switchProjectStatus(projId, targetStatus) {
+      const proj = projects.find(p => p.id === projId);
+      if (!proj) return;
+
+      const map = { ongoing: 'Sedang Berjalan', scheduled: 'Terjadwal', completed: 'Selesai' };
+      const oldStatusText = map[proj.status] || proj.status;
+      const newStatusText = map[targetStatus] || targetStatus;
+
+      proj.status = targetStatus;
+
+      saveState({
+        id: "log-" + Date.now(),
+        timestamp: getNowTimestamp(),
+        type: "update",
+        projName: proj.name,
+        message: `Status proyek diubah dari [${oldStatusText}] ke [${newStatusText}].`
+      });
+
+      showToast(`Status "${proj.name}" diubah ke ${newStatusText}!`);
+      if (activeProjectId === projId) {
+        updateModalStatusUI(proj);
+      }
+    }
+
+    function toggleCurrentProjectStatus() {
+      const proj = projects.find(p => p.id === activeProjectId);
+      if (!proj) return;
+      const nextStatus = proj.status === 'ongoing' ? 'scheduled' : 'ongoing';
+      switchProjectStatus(activeProjectId, nextStatus);
+    }
+
+    function markCurrentProjectCompleted() {
+      const proj = projects.find(p => p.id === activeProjectId);
+      if (!proj) return;
+      switchProjectStatus(activeProjectId, 'completed');
+      closeModal('modalCheckpoints');
+      switchTab('completed');
+    }
+
+    function toggleProjectAccordion(projId) {
+      const content = document.getElementById(`accordion-content-${projId}`);
+      const arrow = document.getElementById(`accordion-arrow-${projId}`);
+      if (!content || !arrow) return;
+
+      const isHidden = content.classList.contains('hidden');
+      if (isHidden) {
+        content.classList.remove('hidden');
+        arrow.style.transform = 'rotate(180deg)';
+      } else {
+        content.classList.add('hidden');
+        arrow.style.transform = 'rotate(0deg)';
+      }
+    }
+
+    function openPhotoViewer(projId, cpId) {
+      activeProjectId = projId;
+      activeViewerCPId = cpId;
+      const proj = projects.find(p => p.id === projId);
+      if (!proj) return;
+      const cp = proj.checkpoints.find(c => c.id === cpId);
+      if (!cp) return;
+
+      document.getElementById('photoViewerTitle').innerText = `[${proj.name}] ${cp.task}`;
+      document.getElementById('photoViewerSubtitle').innerText = `Proses: ${cp.process} | Kategori: ${cp.category}`;
+
+      const imgBefore = document.getElementById('viewerImgBefore');
+      const emptyBefore = document.getElementById('viewerEmptyBefore');
+      if (cp.photoBefore) {
+        imgBefore.src = cp.photoBefore;
+        imgBefore.classList.remove('hidden');
+        emptyBefore.classList.add('hidden');
+      } else {
+        imgBefore.src = '';
+        imgBefore.classList.add('hidden');
+        emptyBefore.classList.remove('hidden');
+      }
+
+      const imgAfter = document.getElementById('viewerImgAfter');
+      const emptyAfter = document.getElementById('viewerEmptyAfter');
+      if (cp.photoAfter) {
+        imgAfter.src = cp.photoAfter;
+        imgAfter.classList.remove('hidden');
+        emptyAfter.classList.add('hidden');
+      } else {
+        imgAfter.src = '';
+        imgAfter.classList.add('hidden');
+        emptyAfter.classList.remove('hidden');
+      }
+
+      document.getElementById('modalPhotoViewer').classList.remove('hidden');
+    }
+
+    async function handleDirectUploadPhoto(type, inputElem) {
+      if (!inputElem.files || !inputElem.files[0]) return;
+      const base64 = await readFileAsBase64(inputElem.files[0]);
+
+      const proj = projects.find(p => p.id === activeProjectId);
+      if (!proj) return;
+      const cp = proj.checkpoints.find(c => c.id === activeViewerCPId);
+      if (!cp) return;
+
+      if (type === 'before') cp.photoBefore = base64;
+      else cp.photoAfter = base64;
+
+      saveState({
+        id: "log-" + Date.now(),
+        timestamp: getNowTimestamp(),
+        type: "update",
+        projName: proj.name,
+        message: `Mengunggah foto ${type === 'before' ? 'awal' : 'sesudah'} untuk checkpoint ${cp.task}.`
+      });
+
+      openPhotoViewer(activeProjectId, activeViewerCPId);
+      if (!document.getElementById('modalCheckpoints').classList.contains('hidden')) {
+        renderCheckpointsTable(proj);
+      }
+      showToast(`Foto ${type === 'before' ? 'awal' : 'sesudah'} berhasil diunggah!`);
+    }
+
+    function openDailyBreakdownModal(projId, cpId) {
+      activeProjectId = projId;
+      const proj = projects.find(p => p.id === projId);
+      if (!proj) return;
+      const cp = proj.checkpoints.find(c => c.id === cpId);
+      if (!cp) return;
+
+      document.getElementById('breakdownTaskTitle').innerText = `[${proj.name}] ${cp.task}`;
+      document.getElementById('breakdownTaskSubtitle').innerText = `Kategori: ${cp.category} &bull; Proses: ${cp.process} &bull; Est: ${cp.estJam} Jam`;
+      document.getElementById('breakdownTotalHours').innerText = `${cp.actualJam} Jam (${cp.progress}%)`;
+
+      document.getElementById('breakdownAddLogBtn').onclick = () => {
+        closeModal('modalDailyBreakdown');
+        openDailyLogModal(projId, cpId);
+      };
+
+      const tbody = document.getElementById('breakdownTableBody');
+      tbody.innerHTML = '';
+
+      if (!cp.dailyLogs || cp.dailyLogs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-3 text-center text-slate-400">Belum ada rincian pengerjaan harian. Klik '+ Tambah Hari / Shift Kerja' untuk mengisi.</td></tr>`;
+      } else {
+        cp.dailyLogs.forEach(log => {
+          let shiftBadge = '';
+          if (log.shift === 'Pagi') shiftBadge = '<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[10px]"><i class="fa-solid fa-sun mr-1"></i>Pagi</span>';
+          else if (log.shift === 'Sore') shiftBadge = '<span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold text-[10px]"><i class="fa-solid fa-cloud-sun mr-1"></i>Sore</span>';
+          else shiftBadge = '<span class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-bold text-[10px]"><i class="fa-solid fa-moon mr-1"></i>Malam</span>';
+
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-50">
+              <td class="p-2.5 font-medium text-slate-700">${log.date}</td>
+              <td class="p-2.5">${shiftBadge}</td>
+              <td class="p-2.5 text-center font-bold text-indigo-600">${log.hours} Jam</td>
+              <td class="p-2.5 text-slate-500">${log.note || '-'}</td>
+              <td class="p-2.5 text-center">
+                <button onclick="deleteDailyLogItem('${proj.id}', '${cp.id}', '${log.id}')" class="text-rose-400 hover:text-rose-600 p-1" title="Hapus catatan">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+        });
+      }
+
+      document.getElementById('modalDailyBreakdown').classList.remove('hidden');
+    }
+
+    function deleteDailyLogItem(projId, cpId, logId) {
+      const proj = projects.find(p => p.id === projId);
+      if (!proj) return;
+      const cp = proj.checkpoints.find(c => c.id === cpId);
+      if (!cp || !cp.dailyLogs) return;
+
+      const deletedItem = cp.dailyLogs.find(l => l.id === logId);
+      cp.dailyLogs = cp.dailyLogs.filter(l => l.id !== logId);
+
+      cp.actualJam = cp.dailyLogs.reduce((sum, item) => sum + Number(item.hours || 0), 0);
+      if (cp.estJam > 0) {
+        cp.progress = Math.min(100, Math.round((cp.actualJam / cp.estJam) * 100));
+        cp.done = cp.progress === 100;
+      }
+
+      saveState({
+        id: "log-" + Date.now(),
+        timestamp: getNowTimestamp(),
+        type: "update",
+        projName: proj.name,
+        message: `Menghapus log ${deletedItem ? deletedItem.date + ' (' + deletedItem.shift + ')' : ''} pada ${cp.task}. Total aktual: ${cp.actualJam} Jam.`
+      });
+
+      openDailyBreakdownModal(projId, cpId);
+      if (!document.getElementById('modalCheckpoints').classList.contains('hidden')) {
+        renderCheckpointsTable(proj);
+      }
+      showToast("Catatan jam kerja berhasil dihapus!");
+    }
+
+    function renderDashboard() {
+      const ongoingContainer = document.getElementById('ongoingCardsContainer');
+      const scheduledContainer = document.getElementById('scheduledCardsContainer');
+      const completedContainer = document.getElementById('completedCardsContainer');
+      const hierarchicalContainer = document.getElementById('hierarchicalContainer');
+      const logList = document.getElementById('historyLogList');
+
+      ongoingContainer.innerHTML = '';
+      scheduledContainer.innerHTML = '';
+      completedContainer.innerHTML = '';
+      hierarchicalContainer.innerHTML = '';
+      logList.innerHTML = '';
+
+      let ongoingCount = 0;
+      let scheduledCount = 0;
+      let completedCount = 0;
+
+      projects.forEach((project, index) => {
+        const totalCP = project.checkpoints.length;
+        const doneCP = project.checkpoints.filter(cp => cp.done).length;
+        const totalEst = project.checkpoints.reduce((sum, cp) => sum + Number(cp.estJam || 0), 0);
+        const totalAct = project.checkpoints.reduce((sum, cp) => sum + Number(cp.actualJam || 0), 0);
+        const avgProgress = totalCP > 0 ? Math.round(project.checkpoints.reduce((sum, cp) => sum + Number(cp.progress || 0), 0) / totalCP) : 0;
+
+        if (project.status === 'ongoing') ongoingCount++;
+        else if (project.status === 'scheduled') scheduledCount++;
+        else if (project.status === 'completed') completedCount++;
+
+        let statusBadge = '';
+        let statusActionButton = '';
+
+        if (project.status === 'ongoing') {
+          statusBadge = `<span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800">Sedang Berjalan</span>`;
+          statusActionButton = `
+            <button onclick="switchProjectStatus('${project.id}', 'scheduled')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] sm:text-[11px] font-semibold transition" title="Jeda proyek">
+              <i class="fa-solid fa-pause text-[9px] mr-1"></i> Jeda
+            </button>
+            <button onclick="switchProjectStatus('${project.id}', 'completed')" class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-[10px] sm:text-[11px] font-bold transition" title="Tandai Selesai">
+              <i class="fa-solid fa-check text-[9px] mr-1"></i> Selesai
+            </button>
+          `;
+        } else if (project.status === 'scheduled') {
+          statusBadge = `<span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800">Terjadwal</span>`;
+          statusActionButton = `
+            <button onclick="switchProjectStatus('${project.id}', 'ongoing')" class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-[10px] sm:text-[11px] font-bold transition">
+              <i class="fa-solid fa-play text-[9px] mr-1"></i> Mulai
+            </button>
+          `;
+        } else {
+          statusBadge = `<span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800"><i class="fa-solid fa-circle-check mr-1"></i>Selesai</span>`;
+          statusActionButton = `
+            <button onclick="switchProjectStatus('${project.id}', 'ongoing')" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-[10px] sm:text-[11px] font-semibold transition" title="Buka kembali pengerjaan">
+              <i class="fa-solid fa-rotate-left text-[9px] mr-1"></i> Kerjakan Lagi
+            </button>
+          `;
+        }
+
+        const cardHTML = `
+          <div class="bg-white rounded-2xl shadow-sm hover:shadow-md transition border border-slate-200 flex flex-col justify-between overflow-hidden">
+            <div class="p-4 sm:p-5">
+              <div class="flex justify-between items-start mb-3">
+                <div>
+                  ${statusBadge}
+                  <h3 class="font-bold text-base text-slate-800 mt-1.5">${project.name}</h3>
+                </div>
+                <div class="flex items-center gap-1">
+                  ${statusActionButton}
+                  <button onclick="deleteProject('${project.id}')" title="Hapus Proyek" class="text-slate-300 hover:text-rose-500 transition text-xs p-1.5 ml-1">
+                    <i class="fa-solid fa-trash-can"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 text-xs text-slate-600 mb-4 bg-slate-50 p-2.5 sm:p-3 rounded-xl border border-slate-100">
+                <div><span class="text-slate-400 block text-[10px] sm:text-[11px]">Target:</span> <strong class="text-slate-700">${project.targetJam || totalEst} Jam</strong></div>
+                <div><span class="text-slate-400 block text-[10px] sm:text-[11px]">Aktual:</span> <strong class="text-slate-700">${totalAct} Jam</strong></div>
+                <div><span class="text-slate-400 block text-[10px] sm:text-[11px]">Durasi:</span> <strong class="text-slate-700">${project.hk || '-'} HK</strong></div>
+                <div><span class="text-slate-400 block text-[10px] sm:text-[11px]">Checkpoints:</span> <strong class="text-slate-700">${doneCP}/${totalCP} Selesai</strong></div>
+              </div>
+
+              <div>
+                <div class="flex justify-between text-xs mb-1.5 font-medium">
+                  <span class="text-slate-500">Progres Keseluruhan</span>
+                  <span class="${avgProgress === 100 ? 'text-emerald-600' : 'text-indigo-600'} font-bold">${avgProgress}%</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div class="h-2 rounded-full transition-all duration-500 ${avgProgress === 100 ? 'bg-emerald-500' : 'bg-indigo-600'}" style="width: ${avgProgress}%"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-3 bg-slate-50 border-t border-slate-100">
+              <button onclick="openCheckpointsModal('${project.id}')" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs">
+                <i class="fa-solid fa-list-check"></i> Kelola Checkpoint (${totalCP})
+              </button>
+            </div>
+          </div>
+        `;
+
+        if (project.status === 'ongoing') ongoingContainer.innerHTML += cardHTML;
+        else if (project.status === 'scheduled') scheduledContainer.innerHTML += cardHTML;
+        else if (project.status === 'completed') completedContainer.innerHTML += cardHTML;
+
+        // Grouping kategori Sheet View
+        const groupedCategories = {};
+        project.checkpoints.forEach(cp => {
+          const cat = cp.category || 'Lainnya';
+          if (!groupedCategories[cat]) groupedCategories[cat] = [];
+          groupedCategories[cat].push(cp);
+        });
+
+        let categoriesHTML = '';
+        const categoryKeys = Object.keys(groupedCategories);
+
+        if (categoryKeys.length === 0) {
+          categoriesHTML = `<div class="p-6 text-center text-slate-400 text-xs">Belum ada kelompok checkpoint pada mold ini.</div>`;
+        } else {
+          categoryKeys.forEach(catName => {
+            const catItems = groupedCategories[catName];
+            const catTotal = catItems.length;
+            const catDone = catItems.filter(i => i.done).length;
+            const catEst = catItems.reduce((sum, i) => sum + Number(i.estJam || 0), 0);
+            const catAct = catItems.reduce((sum, i) => sum + Number(i.actualJam || 0), 0);
+            const catProgress = catTotal > 0 ? Math.round(catItems.reduce((sum, i) => sum + Number(i.progress || 0), 0) / catTotal) : 0;
+
+            let catRows = '';
+            catItems.forEach(cp => {
+              const photoThumb = `
+                <button onclick="openPhotoViewer('${project.id}', '${cp.id}')" class="flex items-center justify-center gap-1 px-2 py-1 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-md transition text-[10px] font-semibold">
+                  <i class="fa-regular fa-image ${cp.photoBefore ? 'text-indigo-600' : 'text-slate-300'}"></i>
+                  <span class="text-slate-300">/</span>
+                  <i class="fa-solid fa-image ${cp.photoAfter ? 'text-emerald-600' : 'text-slate-300'}"></i>
+                </button>
+              `;
+
+              const lastLog = cp.dailyLogs && cp.dailyLogs.length > 0 ? cp.dailyLogs[cp.dailyLogs.length - 1] : null;
+              let shiftBadge = '<span class="text-slate-300 text-[10px]">-</span>';
+              if (lastLog) {
+                if (lastLog.shift === 'Pagi') shiftBadge = '<span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[9px]">Pagi</span>';
+                else if (lastLog.shift === 'Sore') shiftBadge = '<span class="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-bold text-[9px]">Sore</span>';
+                else shiftBadge = '<span class="px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 font-bold text-[9px]">Malam</span>';
+              }
+
+              catRows += `
+                <tr class="hover:bg-slate-50/80 transition text-xs border-b border-slate-100 last:border-0">
+                  <td class="p-2.5 text-slate-800 font-medium">${cp.task}</td>
+                  <td class="p-2.5 font-mono uppercase text-slate-500 font-semibold">${cp.process}</td>
+                  <td class="p-2.5 text-center">${photoThumb}</td>
+                  <td class="p-2.5 text-center text-slate-600 font-medium">${cp.estJam}</td>
+                  <td class="p-2.5 text-center">
+                    <button onclick="openDailyBreakdownModal('${project.id}', '${cp.id}')" class="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded font-bold transition flex items-center gap-1 mx-auto" title="Klik lihat rincian tanggal & shift pengerjaan">
+                      <span>${cp.actualJam}</span>
+                      <i class="fa-solid fa-calendar-days text-[9px]"></i>
+                    </button>
+                  </td>
+                  <td class="p-2.5 text-center">${shiftBadge}</td>
+                  <td class="p-2.5 text-center">
+                    <span class="px-2 py-0.5 rounded-full font-bold text-[10px] ${cp.progress === 100 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${cp.progress}%</span>
+                  </td>
+                  <td class="p-2.5 text-center">
+                    ${cp.done ? '<span class="text-emerald-600 font-bold"><i class="fa-solid fa-circle-check"></i> Selesai</span>' : '<span class="text-slate-400 font-medium"><i class="fa-regular fa-clock"></i> Proses</span>'}
+                  </td>
+                  <td class="p-2.5 text-center">
+                    <button onclick="openDailyLogModal('${project.id}', '${cp.id}')" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-xs font-bold transition">
+                      <i class="fa-solid fa-pen-to-square"></i> + Log
+                    </button>
+                  </td>
+                </tr>
+              `;
+            });
+
+            categoriesHTML += `
+              <div class="mb-4 last:mb-0 border border-slate-200/80 rounded-xl overflow-hidden bg-white shadow-xs">
+                <div class="bg-slate-100/90 px-4 py-2.5 flex flex-wrap items-center justify-between border-b border-slate-200/70 gap-2">
+                  <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-0.5 bg-indigo-600 text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
+                      Bagian: ${catName}
+                    </span>
+                    <span class="text-[11px] text-slate-500">
+                      (${catDone}/${catTotal} Selesai &bull; Est: <strong>${catEst}j</strong> &bull; Aktual: <strong>${catAct}j</strong>)
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2">
+                      <span class="text-[11px] font-bold text-slate-600">${catProgress}%</span>
+                      <div class="w-20 sm:w-28 bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                        <div class="h-1.5 rounded-full ${catProgress === 100 ? 'bg-emerald-500' : 'bg-indigo-600'}" style="width: ${catProgress}%"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="overflow-x-auto custom-scrollbar">
+                  <table class="w-full text-left border-collapse whitespace-nowrap">
+                    <thead>
+                      <tr class="bg-slate-50/70 text-slate-500 uppercase font-bold text-[10px] border-b">
+                        <th class="p-2.5">Uraian Checkpoint</th>
+                        <th class="p-2.5">Proses</th>
+                        <th class="p-2.5 text-center">Foto</th>
+                        <th class="p-2.5 text-center">Est (Jam)</th>
+                        <th class="p-2.5 text-center">Aktual</th>
+                        <th class="p-2.5 text-center">Shift Terakhir</th>
+                        <th class="p-2.5 text-center">Progress</th>
+                        <th class="p-2.5 text-center">Status</th>
+                        <th class="p-2.5 text-center">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${catRows}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            `;
+          });
+        }
+
+        const accordionItemHTML = `
+          <div class="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-xs">
+            <div onclick="toggleProjectAccordion('${project.id}')" class="p-4 bg-slate-50/80 hover:bg-slate-100 transition cursor-pointer flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="w-8 h-8 rounded-xl bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                  ${index + 1}
+                </span>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h4 class="font-bold text-base text-slate-800">${project.name}</h4>
+                    ${statusBadge}
+                  </div>
+                  <p class="text-xs text-slate-500 mt-0.5">
+                    Target Total: <strong>${project.targetJam || totalEst} Jam</strong> &bull; Aktual: <strong>${totalAct} Jam</strong> &bull; Checkpoint: <strong>${doneCP}/${totalCP} Selesai</strong>
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+                <div class="w-36 sm:w-48">
+                  <div class="flex justify-between text-[11px] font-bold mb-1">
+                    <span class="text-slate-500">Progress Keseluruhan</span>
+                    <span class="${avgProgress === 100 ? 'text-emerald-600' : 'text-indigo-600'}">${avgProgress}%</span>
+                  </div>
+                  <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                    <div class="h-2 rounded-full transition-all duration-500 ${avgProgress === 100 ? 'bg-emerald-500' : 'bg-indigo-600'}" style="width: ${avgProgress}%"></div>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <button onclick="event.stopPropagation(); openCheckpointsModal('${project.id}')" class="p-1.5 text-xs text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="Kelola Checkpoint">
+                    <i class="fa-solid fa-gear"></i>
+                  </button>
+                  <i id="accordion-arrow-${project.id}" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
+                </div>
+              </div>
+            </div>
+
+            <div id="accordion-content-${project.id}" class="hidden border-t border-slate-200 bg-slate-50/30 p-3 sm:p-4">
+              ${categoriesHTML}
+            </div>
+          </div>
+        `;
+
+        hierarchicalContainer.innerHTML += accordionItemHTML;
+      });
+
+      document.getElementById('badgeOngoing').innerText = ongoingCount;
+      document.getElementById('badgeScheduled').innerText = scheduledCount;
+      document.getElementById('badgeCompleted').innerText = completedCount;
+      document.getElementById('badgeLogs').innerText = historyLogs.length;
+      document.getElementById('badgeRKArchive').innerText = savedRencanaKerja.length;
+
+      if (ongoingCount === 0) {
+        ongoingContainer.innerHTML = '<div class="col-span-full text-center py-12 text-slate-400 text-xs"><i class="fa-regular fa-folder-open text-3xl mb-2"></i><p>Tidak ada proyek yang sedang berjalan. Klik tombol "+ Tambah Proyek" untuk memulai.</p></div>';
+      }
+      if (scheduledCount === 0) {
+        scheduledContainer.innerHTML = '<div class="col-span-full text-center py-12 text-slate-400 text-xs"><i class="fa-regular fa-calendar-xmark text-3xl mb-2"></i><p>Tidak ada proyek dalam antrean jadwal.</p></div>';
+      }
+      if (completedCount === 0) {
+        completedContainer.innerHTML = '<div class="col-span-full text-center py-12 text-slate-400 text-xs"><i class="fa-solid fa-circle-check text-3xl mb-2 text-slate-300"></i><p>Belum ada proyek workshop yang ditandai selesai.</p></div>';
+      }
+
+      if (projects.length === 0) {
+        hierarchicalContainer.innerHTML = '<div class="text-center py-12 text-slate-400 text-xs"><i class="fa-solid fa-layer-group text-3xl mb-2"></i><p>Belum ada data proyek mold. Silakan tambahkan proyek baru.</p></div>';
+      }
+
+      if (historyLogs.length === 0) {
+        logList.innerHTML = `<div class="p-8 text-center text-slate-400 text-xs">Belum ada catatan riwayat aktivitas.</div>`;
+      } else {
+        historyLogs.forEach(log => {
+          logList.innerHTML += `
+            <div class="flex items-start gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/70">
+              <div class="p-2 rounded-lg ${log.type === 'create' ? 'bg-emerald-100 text-emerald-600' : (log.type === 'delete' ? 'bg-rose-100 text-rose-600' : 'bg-indigo-100 text-indigo-600')} text-xs">
+                <i class="fa-solid ${log.type === 'create' ? 'fa-plus' : (log.type === 'delete' ? 'fa-trash' : 'fa-pen')}"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex justify-between items-baseline gap-2">
+                  <span class="font-bold text-xs text-slate-800 truncate">${log.projName || 'Workshop'}</span>
+                  <span class="text-[10px] text-slate-400 flex-shrink-0">${log.timestamp}</span>
+                </div>
+                <p class="text-xs text-slate-600 mt-0.5 break-words">${log.message}</p>
+              </div>
+            </div>
+          `;
+        });
+      }
+    }
+
+    function openAddProjectModal() {
+      document.getElementById('modalAddProject').classList.remove('hidden');
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+    }
+
+    function handleSaveProject(e) {
+      e.preventDefault();
+      const projName = document.getElementById('projName').value.trim();
+      const projStatus = document.getElementById('projStatus').value;
+      const projHK = Number(document.getElementById('projHK').value) || 0;
+      const projTargetJam = Number(document.getElementById('projTargetJam').value) || 0;
+      const projStartDate = document.getElementById('projStartDate').value || new Date().toISOString().split('T')[0];
+
+      if (!projName) return;
+
+      const newProj = {
+        id: "proj-" + Date.now(),
+        name: projName,
+        status: projStatus,
+        hk: projHK,
+        targetJam: projTargetJam,
+        startDate: projStartDate,
+        checkpoints: []
+      };
+
+      projects.unshift(newProj);
+
+      saveState({
+        id: "log-" + Date.now(),
+        timestamp: getNowTimestamp(),
+        type: "create",
+        projName: projName,
+        message: `Membuat proyek baru [${projName}] (${projStatus}) target ${projTargetJam} jam.`
+      });
+
+      closeModal('modalAddProject');
+      document.getElementById('formAddProject').reset();
+      switchTab(projStatus);
+      showToast(`Proyek "${projName}" berhasil ditambahkan!`);
+    }
+
+    function updateModalStatusUI(proj) {
+      const badgeBtn = document.getElementById('modalProjBadgeBtn');
+      const switchBtn = document.getElementById('modalSwitchStatusBtn');
+
+      if (proj.status === 'ongoing') {
+        badgeBtn.className = "text-[10px] px-2.5 py-1 rounded-full font-bold bg-amber-100 text-amber-800 hover:bg-amber-200 transition flex items-center gap-1";
+        badgeBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin-pulse text-[10px]"></i> Berjalan';
+        switchBtn.innerHTML = '<i class="fa-regular fa-calendar-check text-indigo-600"></i> Pindahkan ke Terjadwal';
+      } else if (proj.status === 'scheduled') {
+        badgeBtn.className = "text-[10px] px-2.5 py-1 rounded-full font-bold bg-blue-100 text-blue-800 hover:bg-blue-200 transition flex items-center gap-1";
+        badgeBtn.innerHTML = '<i class="fa-regular fa-clock text-[10px]"></i> Terjadwal';
+        switchBtn.innerHTML = '<i class="fa-solid fa-play text-emerald-600"></i> Mulai Proyek Sekarang';
+      } else {
+        badgeBtn.className = "text-[10px] px-2.5 py-1 rounded-full font-bold bg-emerald-100 text-emerald-800 transition flex items-center gap-1";
+        badgeBtn.innerHTML = '<i class="fa-solid fa-circle-check text-[10px]"></i> Selesai';
+        switchBtn.innerHTML = '<i class="fa-solid fa-rotate-left text-indigo-600"></i> Kembalikan ke Berjalan';
+      }
+    }
+
+    function openCheckpointsModal(projectId) {
+      activeProjectId = projectId;
+      const proj = projects.find(p => p.id === projectId);
+      if (!proj) return;
+
+      document.getElementById('modalProjTitle').innerText = proj.name;
+      document.getElementById('modalProjSubtitle').innerText = `Target: ${proj.targetJam || '-'} Jam | Durasi: ${proj.hk || '-'} HK | Mulai: ${proj.startDate || '-'}`;
+      
+      updateModalStatusUI(proj);
+      renderCheckpointsTable(proj);
+      document.getElementById('modalCheckpoints').classList.remove('hidden');
+    }
+
+    function renderCheckpointsTable(proj) {
+      const tbody = document.getElementById('checkpointTableBody');
+      tbody.innerHTML = '';
+
+      if (proj.checkpoints.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-slate-400">Belum ada checkpoint untuk mold ini.</td></tr>`;
+        return;
+      }
+
+      proj.checkpoints.forEach(cp => {
+        const photoBtn = `
+          <button onclick="openPhotoViewer('${proj.id}', '${cp.id}')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold transition flex items-center gap-1 mx-auto">
+            <i class="fa-regular fa-image ${cp.photoBefore ? 'text-indigo-600' : 'text-slate-400'}"></i>
+            <span>/</span>
+            <i class="fa-solid fa-image ${cp.photoAfter ? 'text-emerald-600' : 'text-slate-400'}"></i>
+          </button>
+        `;
+
+        const logCount = cp.dailyLogs ? cp.dailyLogs.length : 0;
+
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="p-2.5 font-bold text-slate-700">${cp.category}</td>
+            <td class="p-2.5 text-slate-800 font-medium">${cp.task}</td>
+            <td class="p-2.5 text-slate-500 font-mono uppercase">${cp.process}</td>
+            <td class="p-2.5 text-center">${photoBtn}</td>
+            <td class="p-2.5 text-center text-slate-600 font-semibold">${cp.estJam}</td>
+            <td class="p-2.5 text-center">
+              <button onclick="openDailyBreakdownModal('${proj.id}', '${cp.id}')" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg font-bold transition flex items-center gap-1.5 mx-auto" title="Klik untuk rincian harian & shift">
+                <span>${cp.actualJam} Jam</span>
+                <span class="text-[9px] px-1 bg-indigo-200/70 text-indigo-800 rounded font-normal">${logCount} log</span>
+              </button>
+            </td>
+            <td class="p-2.5 text-center font-bold ${cp.progress === 100 ? 'text-emerald-600' : 'text-indigo-600'}">${cp.progress}%</td>
+            <td class="p-2.5 text-center">
+              <button onclick="toggleCPStatus('${cp.id}')" class="px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold transition ${cp.done ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+                ${cp.done ? '<i class="fa-solid fa-check mr-1"></i> Selesai' : '<i class="fa-regular fa-circle mr-1"></i> Proses'}
+              </button>
+            </td>
+            <td class="p-2.5 text-center">
+              <div class="flex items-center justify-center gap-1">
+                <button onclick="openDailyLogModal('${proj.id}', '${cp.id}')" class="text-indigo-600 hover:text-indigo-800 px-2 py-1 rounded bg-indigo-50 text-[10px] font-bold" title="Input Jam Bertanggal & Shift">
+                  <i class="fa-solid fa-plus mr-0.5"></i> Log
+                </button>
+                <button onclick="deleteCheckpoint('${cp.id}')" class="text-slate-300 hover:text-rose-600 p-1 transition" title="Hapus checkpoint"><i class="fa-solid fa-trash-can"></i></button>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    async function handleSaveCheckpoint(e) {
+      e.preventDefault();
+      const proj = projects.find(p => p.id === activeProjectId);
+      if (!proj) return;
+
+      const task = document.getElementById('cpTask').value;
+      const est = Number(document.getElementById('cpEst').value) || 0;
+      const process = document.getElementById('cpProcess').value;
+      const category = document.getElementById('cpCategory').value;
+
+      const photoBeforeFile = document.getElementById('cpPhotoBefore').files[0];
+      const photoAfterFile = document.getElementById('cpPhotoAfter').files[0];
+
+      const photoBeforeBase64 = await readFileAsBase64(photoBeforeFile);
+      const photoAfterBase64 = await readFileAsBase64(photoAfterFile);
+
+      const newCP = {
+        id: "cp-" + Date.now(),
+        category: category,
+        task: task,
+        process: process,
+        estJam: est,
+        actualJam: 0,
+        progress: 0,
+        done: false,
+        photoBefore: photoBeforeBase64,
+        photoAfter: photoAfterBase64,
+        dailyLogs: []
+      };
+
+      proj.checkpoints.push(newCP);
+      saveState({
+        id: "log-" + Date.now(),
+        timestamp: getNowTimestamp(),
+        type: "update",
+        projName: proj.name,
+        message: `Menambahkan checkpoint: [${category}] ${task} (${process}, ${est} Jam)${photoBeforeBase64 || photoAfterBase64 ? ' + Foto' : ''}`
+      });
+
+      renderCheckpointsTable(proj);
+      document.getElementById('formAddCheckpoint').reset();
+      showToast("Checkpoint dan foto berhasil ditambahkan!");
+    }
+
+    function toggleCPStatus(cpId) {
+      const proj = projects.find(p => p.id === activeProjectId);
+      if (!proj) return;
+      const cp = proj.checkpoints.find(c => c.id === cpId);
+      if (cp) {
+        cp.done = !cp.done;
+        if (cp.done) {
+          cp.progress = 100;
+          if (cp.actualJam === 0) {
+            cp.actualJam = cp.estJam;
+            if (!cp.dailyLogs) cp.dailyLogs = [];
+            cp.dailyLogs.push({
+              id: "dl-" + Date.now(),
+              date: new Date().toISOString().split('T')[0],
+              shift: "Pagi",
+              hours: cp.estJam,
+              note: "Penandaan status selesai langsung"
+            });
+          }
+        } else {
+          cp.progress = Math.round((cp.actualJam / (cp.estJam || 1)) * 100);
+        }
+
+        saveState({
+          id: "log-" + Date.now(),
+          timestamp: getNowTimestamp(),
+          type: "update",
+          projName: proj.name,
+          message: `Status ${cp.task}: ${cp.done ? 'SELESAI' : 'PROSES'}`
+        });
+
+        renderCheckpointsTable(proj);
+      }
+    }
+
+    function openDailyLogModal(projId, cpId) {
+      const proj = projects.find(p => p.id === projId);
+      if (!proj) return;
+      const cp = proj.checkpoints.find(c => c.id === cpId);
+      if (!cp) return;
+
+      document.getElementById('logProjId').value = projId;
+      document.getElementById('logCPId').value = cpId;
+      document.getElementById('logTaskName').innerText = `[${proj.name}] ${cp.task} (${cp.process})`;
+      document.getElementById('logDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('logShift').value = 'Pagi';
+      document.getElementById('logHours').value = '';
+      document.getElementById('logNote').value = '';
+      document.getElementById('logPhotoAfter').value = '';
+
+      document.getElementById('modalDailyLog').classList.remove('hidden');
+    }
+
+    async function handleSaveDailyLog(e) {
+      e.preventDefault();
+      const projId = document.getElementById('logProjId').value;
+      const cpId = document.getElementById('logCPId').value;
+      const addedHours = Number(document.getElementById('logHours').value) || 0;
+      const date = document.getElementById('logDate').value;
+      const shift = document.getElementById('logShift').value;
+      const note = document.getElementById('logNote').value;
+      const photoFile = document.getElementById('logPhotoAfter').files[0];
+
+      const proj = projects.find(p => p.id === projId);
+      if (!proj) return;
+      const cp = proj.checkpoints.find(c => c.id === cpId);
+      if (!cp) return;
+
+      if (!cp.dailyLogs) cp.dailyLogs = [];
+
+      cp.dailyLogs.push({
+        id: "dl-" + Date.now(),
+        date: date,
+        shift: shift,
+        hours: addedHours,
+        note: note
+      });
+
+      cp.actualJam = cp.dailyLogs.reduce((sum, item) => sum + Number(item.hours || 0), 0);
+      if (cp.estJam > 0) {
+        cp.progress = Math.min(100, Math.round((cp.actualJam / cp.estJam) * 100));
+        cp.done = cp.progress === 100;
+      }
+
+      if (photoFile) {
+        cp.photoAfter = await readFileAsBase64(photoFile);
+      }
+
+      saveState({
+        id: "log-" + Date.now(),
+        timestamp: `${date} ${new Date().toTimeString().slice(0, 5)}`,
+        type: "update",
+        projName: proj.name,
+        message: `Input kerja tgl ${date} [Shift ${shift}]: +${addedHours} Jam pada ${cp.task}. Total: ${cp.actualJam} Jam.${photoFile ? ' + Foto Baru' : ''} ${note ? '(' + note + ')' : ''}`
+      });
+
+      closeModal('modalDailyLog');
+      if (!document.getElementById('modalCheckpoints').classList.contains('hidden')) {
+        renderCheckpointsTable(proj);
+      }
+      showToast(`Pengerjaan tgl ${date} (Shift ${shift}: +${addedHours} jam) berhasil dicatat!`);
+    }
+
+    function deleteProject(id) {
+      const proj = projects.find(p => p.id === id);
+      if (!proj) return;
+      if (confirm(`Yakin ingin menghapus proyek ${proj.name}?`)) {
+        projects = projects.filter(p => p.id !== id);
+        saveState({
+          id: "log-" + Date.now(),
+          timestamp: getNowTimestamp(),
+          type: "delete",
+          projName: proj.name,
+          message: `Menghapus proyek ${proj.name}.`
+        });
+        showToast("Proyek berhasil dihapus.");
+      }
+    }
+
+    function deleteCheckpoint(cpId) {
+      const proj = projects.find(p => p.id === activeProjectId);
+      if (!proj) return;
+      const cp = proj.checkpoints.find(c => c.id === cpId);
+      if (confirm(`Hapus checkpoint "${cp.task}"?`)) {
+        proj.checkpoints = proj.checkpoints.filter(c => c.id !== cpId);
+        saveState({
+          id: "log-" + Date.now(),
+          timestamp: getNowTimestamp(),
+          type: "delete",
+          projName: proj.name,
+          message: `Menghapus checkpoint: ${cp.task}`
+        });
+        renderCheckpointsTable(proj);
+        showToast("Checkpoint berhasil dihapus.");
+      }
+    }
+
+    function clearHistoryLogs() {
+      if (confirm("Bersihkan seluruh daftar riwayat?")) {
+        historyLogs = [];
+        localStorage.setItem('workshop_logs', JSON.stringify([]));
+        renderDashboard();
+        showToast("Riwayat aktivitas telah dibersihkan.");
+      }
+    }
+
+    function filterHierarchicalSheet() {
+      const query = document.getElementById('sheetSearchInput').value.toLowerCase();
+      const accordions = document.querySelectorAll('#hierarchicalContainer > div');
+
+      accordions.forEach(item => {
+        const text = item.innerText.toLowerCase();
+        item.style.display = text.includes(query) ? '' : 'none';
+      });
+    }
+
+    function exportDataCSV() {
+      let csvContent = "data:text/csv;charset=utf-8,";
+      csvContent += "Proyek,Status,Kategori,Uraian Pekerjaan,Proses/Mesin,Ada Foto Awal,Ada Foto Akhir,Estimasi (Jam),Aktual Total (Jam),Jumlah Log Pengerjaan,Progress (%),Selesai\n";
+
+      projects.forEach(p => {
+        p.checkpoints.forEach(cp => {
+          const daysCount = cp.dailyLogs ? cp.dailyLogs.length : 0;
+          csvContent += `"${p.name}","${p.status}","${cp.category}","${cp.task}","${cp.process}",${cp.photoBefore ? 'Ya' : 'Tidak'},${cp.photoAfter ? 'Ya' : 'Tidak'},${cp.estJam},${cp.actualJam},${daysCount},${cp.progress},${cp.done ? 'Ya' : 'Tidak'}\n`;
+        });
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `workshop_mold_rekap_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // =========================================================================
+    // 2. LOGIKA & FUNGSI RENCANA KERJA & PENYIMPANAN ARSIP
+    // =========================================================================
+    const RK_STORAGE_KEY_CHECKPOINTS = 'modifikasi_mold_checkpoints';
+    const RK_STORAGE_KEY_INFO = 'modifikasi_mold_info';
+
+    const RK_PROCESS_RATES = {
+      "CNC": 150000,
+      "MILLING": 50000,
+      "EDM": 50000,
+      "BOR": 50000,
+      "BUBUT": 50000,
+      "LAS": 20000,
+      "RAKIT/BONGKAR": 20000,
+      "POLESHING": 20000,
+      "POLES": 20000,
+      "SPOTTING": 20000,
+      "SHOCK": 20000,
+      "REAMER": 20000,
+      "LAS DAN MILLING": 50000,
+      "-": 20000
+    };
+
+    let rk_checkpoints = JSON.parse(localStorage.getItem(RK_STORAGE_KEY_CHECKPOINTS)) || [];
+    const rk_categoryOrder = ["Cavity", "Core", "Sleder", "Base Mold", "Ejector", "Spoting", "Lainnya"];
+
+    function rk_saveAllData() {
+      localStorage.setItem(RK_STORAGE_KEY_CHECKPOINTS, JSON.stringify(rk_checkpoints));
+      const info = {
+        moldName: document.getElementById('rk_moldName').value,
+        moldJob: document.getElementById('rk_moldJob').value,
+        moldStartDate: document.getElementById('rk_moldStartDate').value,
+        moldEndDate: document.getElementById('rk_moldEndDate').value
+      };
+      localStorage.setItem(RK_STORAGE_KEY_INFO, JSON.stringify(info));
+    }
+
+    function rk_loadSavedInfo() {
+      const saved = localStorage.getItem(RK_STORAGE_KEY_INFO);
+      if (saved) {
+        try {
+          const info = JSON.parse(saved);
+          if (info.moldName !== undefined) document.getElementById('rk_moldName').value = info.moldName;
+          if (info.moldJob !== undefined) document.getElementById('rk_moldJob').value = info.moldJob;
+          if (info.moldStartDate !== undefined) document.getElementById('rk_moldStartDate').value = info.moldStartDate;
+          if (info.moldEndDate !== undefined) document.getElementById('rk_moldEndDate').value = info.moldEndDate;
+        } catch (e) {
+          console.error("Gagal membaca storage Rencana Kerja:", e);
+        }
+      }
+    }
+
+    function rk_clearAllData(silent = false) {
+      if (silent || confirm("Yakin ingin mengosongkan seluruh formulir dan checkpoint Rencana Kerja?")) {
+        rk_checkpoints = [];
+        localStorage.removeItem(RK_STORAGE_KEY_CHECKPOINTS);
+        localStorage.removeItem(RK_STORAGE_KEY_INFO);
+
+        document.getElementById('rk_moldName').value = '';
+        document.getElementById('rk_moldJob').value = '';
+        document.getElementById('rk_moldStartDate').value = '';
+        document.getElementById('rk_moldEndDate').value = '';
+
+        rk_renderAll();
+        if (!silent) showToast("Formulir rencana kerja berhasil dikosongkan.");
+      }
+    }
+
+    function rk_formatRupiah(num) {
+      if (!num || isNaN(num)) return "Rp 0";
+      return "Rp " + Number(num).toLocaleString('id-ID') + ",00";
+    }
+
+    function rk_previewRateNotice() {
+      const proc = document.getElementById('rk_cpProcess').value;
+      const rate = RK_PROCESS_RATES[proc] || 20000;
+      document.getElementById('rk_rateNote').innerText = `Tarif acuan: ${rk_formatRupiah(rate).replace(',00','')} / jam`;
+    }
+
+    function rk_handleAddCheckpoint(e) {
+      e.preventDefault();
+      const cat = document.getElementById('rk_cpCategory').value;
+      const task = document.getElementById('rk_cpTask').value.trim();
+      const proc = document.getElementById('rk_cpProcess').value;
+      const est = Number(document.getElementById('rk_cpEst').value) || 0;
+
+      if (!task || est <= 0) return;
+
+      rk_checkpoints.push({
+        id: Date.now(),
+        category: cat,
+        task: task,
+        process: proc,
+        estJam: est
+      });
+
+      document.getElementById('rk_cpTask').value = '';
+      document.getElementById('rk_cpEst').value = '';
+
+      rk_saveAllData();
+      rk_renderAll();
+      showToast("Checkpoint Rencana Kerja ditambahkan!");
+    }
+
+    function rk_removeCheckpoint(id) {
+      rk_checkpoints = rk_checkpoints.filter(cp => cp.id !== id);
+      rk_saveAllData();
+      rk_renderAll();
+      showToast("Checkpoint dihapus.");
+    }
+
+    function rk_sendCheckPointsToWA() {
+      if (rk_checkpoints.length === 0) {
+        alert("Belum ada checkpoint yang dimasukkan.");
+        return;
+      }
+
+      const mold = document.getElementById('rk_moldName').value.trim() || '-';
+      const job = document.getElementById('rk_moldJob').value.trim() || '-';
+
+      let msg = "*CHECK POINTS PENGERJAAN*\n";
+      msg += "=========================\n";
+      msg += "*Mold*       : " + mold + "\n";
+      msg += "*Pengerjaan* : " + job + "\n";
+      msg += "=========================\n\n";
+
+      const grouped = {};
+      rk_categoryOrder.forEach(c => grouped[c] = []);
+      rk_checkpoints.forEach(cp => {
+        if (!grouped[cp.category]) grouped[cp.category] = [];
+        grouped[cp.category].push(cp);
+      });
+
+      rk_categoryOrder.forEach(catKey => {
+        const items = grouped[catKey];
+        if (!items || items.length === 0) return;
+
+        let headerLabel = `BASE ${catKey.toUpperCase()}`;
+        if (catKey === 'Spoting') headerLabel = 'SPOTING';
+        if (catKey === 'Lainnya') headerLabel = 'CHECK & FINISHING UMUM';
+
+        msg += `*${headerLabel}*\n`;
+        items.forEach((item, idx) => {
+          msg += `[ ] ${idx + 1}. ${item.task}\n`;
+        });
+        msg += "\n";
+      });
+
+      msg += "*Status:* Siap diverifikasi pada fisik mold.";
+
+      const encoded = encodeURIComponent(msg);
+      window.open(`https://wa.me/?text=${encoded}`, '_blank');
+    }
+
+    function rk_renderAll() {
+      const grouped = {};
+      rk_categoryOrder.forEach(c => grouped[c] = []);
+
+      rk_checkpoints.forEach(cp => {
+        if (!grouped[cp.category]) grouped[cp.category] = [];
+        grouped[cp.category].push(cp);
+      });
+
+      // 1. Render Live Edit
+      const liveBody = document.getElementById('rk_liveTableBody');
+      liveBody.innerHTML = '';
+      document.getElementById('rk_badgeCount').innerText = `${rk_checkpoints.length} Item`;
+
+      if (rk_checkpoints.length === 0) {
+        liveBody.innerHTML = `<tr><td colspan="7" class="p-5 text-center text-slate-400 italic text-xs">Belum ada checkpoint ditambahkan. Silakan tambahkan item melalui form di atas.</td></tr>`;
+      } else {
+        rk_categoryOrder.forEach(catKey => {
+          const items = grouped[catKey];
+          if (!items || items.length === 0) return;
+
+          const totalSubJam = items.reduce((sum, item) => sum + item.estJam, 0);
+
+          liveBody.innerHTML += `
+            <tr class="bg-indigo-50/70 border-t border-b border-indigo-100">
+              <td colspan="7" class="px-3.5 py-1.5 text-xs font-bold text-indigo-900 tracking-wide uppercase">
+                <i class="fa-solid fa-folder-open mr-1.5 text-indigo-600"></i> Bagian: ${catKey} (${items.length} item • ${totalSubJam} Jam)
+              </td>
+            </tr>
+          `;
+
+          items.forEach(cp => {
+            const rate = RK_PROCESS_RATES[cp.process] || 20000;
+            const cost = cp.estJam * rate;
+            liveBody.innerHTML += `
+              <tr class="hover:bg-slate-50 transition">
+                <td class="p-2.5 font-bold text-slate-600 pl-4">${cp.category}</td>
+                <td class="p-2.5 font-medium text-slate-800">${cp.task}</td>
+                <td class="p-2.5 font-mono uppercase font-bold text-indigo-700">${cp.process}</td>
+                <td class="p-2.5 text-center font-bold">${cp.estJam}</td>
+                <td class="p-2.5 text-right text-slate-500">${rk_formatRupiah(rate).replace(',00','')}</td>
+                <td class="p-2.5 text-right font-bold text-slate-800">${rk_formatRupiah(cost).replace(',00','')}</td>
+                <td class="p-2.5 text-center">
+                  <button type="button" onclick="rk_removeCheckpoint(${cp.id})" class="text-slate-400 hover:text-rose-600 p-1 transition text-xs"><i class="fa-solid fa-trash-can"></i></button>
+                </td>
+              </tr>
+            `;
+          });
+        });
+      }
+
+      // 2. Render Header Informasi Mold
+      const moldName = document.getElementById('rk_moldName').value.trim() || '-';
+      const moldJob = document.getElementById('rk_moldJob').value.trim() || '-';
+      const startDate = document.getElementById('rk_moldStartDate').value || '-';
+      const endDate = document.getElementById('rk_moldEndDate').value || '-';
+
+      document.getElementById('rk_outMoldName').innerText = moldName;
+      document.getElementById('rk_outMoldJob').innerText = moldJob;
+      document.getElementById('rk_outStartDate').innerText = startDate;
+      document.getElementById('rk_outEndDate').innerText = endDate;
+
+      // 3. Render Tabel Dokumen Preview Cetak PDF
+      const pdfBody = document.getElementById('rk_pdfTableBody');
+      pdfBody.innerHTML = '';
+
+      let totalJam = 0;
+      let totalBiaya = 0;
+      let rowNumber = 1;
+
+      if (rk_checkpoints.length === 0) {
+        pdfBody.innerHTML = `
+          <tr>
+            <td colspan="7" class="p-6 text-center text-slate-400 italic text-xs">Belum ada rincian pekerjaan yang dimasukkan.</td>
+          </tr>
+        `;
+      } else {
+        rk_categoryOrder.forEach(catKey => {
+          const items = grouped[catKey];
+          if (!items || items.length === 0) return;
+
+          let headerLabel = `BASE ${catKey.toUpperCase()}`;
+          if (catKey === 'Spoting') headerLabel = 'SPOTING';
+          if (catKey === 'Lainnya') headerLabel = 'CHECK & FINISHING UMUM';
+
+          const categoryNo = rowNumber++;
+          const totalCategoryRows = items.length + 1;
+
+          let categoryBlockHTML = `
+            <tr class="text-black font-extrabold bg-slate-50/50">
+              <td rowspan="${totalCategoryRows}" class="p-2 text-center align-middle font-bold">${categoryNo}</td>
+              <td class="p-2 pl-3 uppercase font-extrabold tracking-wide">${headerLabel}</td>
+              <td class="p-2"></td>
+              <td class="p-2"></td>
+              <td class="p-2"></td>
+              <td rowspan="${totalCategoryRows}" class="p-2 align-middle text-center bg-white"></td>
+              <td rowspan="${totalCategoryRows}" class="p-2 align-middle text-center bg-white"></td>
+            </tr>
+          `;
+
+          items.forEach(item => {
+            const rate = RK_PROCESS_RATES[item.process] || 20000;
+            const cost = item.estJam * rate;
+            totalJam += item.estJam;
+            totalBiaya += cost;
+
+            categoryBlockHTML += `
+              <tr class="text-black">
+                <td class="p-1.5 pl-4 font-medium">
+                  <span class="inline-block mr-1.5 text-[9px]">•</span> ${item.task}
+                </td>
+                <td class="p-1.5 text-center uppercase font-semibold whitespace-nowrap">${item.process}</td>
+                <td class="p-1.5 text-center font-bold whitespace-nowrap">${item.estJam}</td>
+                <td class="p-1.5 text-right pr-3 whitespace-nowrap font-medium">${rk_formatRupiah(cost)}</td>
+              </tr>
+            `;
+          });
+
+          pdfBody.innerHTML += categoryBlockHTML;
+        });
+      }
+
+      // Update Total & HK
+      document.getElementById('rk_pdfTotalJam').innerText = totalJam;
+      document.getElementById('rk_pdfTotalBiaya').innerText = rk_formatRupiah(totalBiaya);
+      
+      const estimasiHK = (totalJam / 20).toFixed(1).replace('.', ',');
+      document.getElementById('rk_pdfTotalHK').innerText = `${estimasiHK} HK`;
+      document.getElementById('rk_outHK').innerText = `${estimasiHK} HK`;
+    }
+
+    function rk_previewPDF() {
+      rk_renderAll();
+      window.print();
+    }
+
+    // =========================================================================
+    // 3. FITUR SIMPAN & SELESAI RENCANA KERJA KE ARSIP
+    // =========================================================================
+    function rk_saveToArchive() {
+      const moldName = document.getElementById('rk_moldName').value.trim();
+      const moldJob = document.getElementById('rk_moldJob').value.trim();
+      const startDate = document.getElementById('rk_moldStartDate').value || '-';
+      const endDate = document.getElementById('rk_moldEndDate').value || '-';
+
+      if (!moldName && rk_checkpoints.length === 0) {
+        alert("Silakan isi nama mold dan checkpoint pengerjaan terlebih dahulu!");
+        return;
+      }
+
+      let totalJam = 0;
+      let totalBiaya = 0;
+      rk_checkpoints.forEach(cp => {
+        const rate = RK_PROCESS_RATES[cp.process] || 20000;
+        totalJam += Number(cp.estJam || 0);
+        totalBiaya += Number(cp.estJam || 0) * rate;
+      });
+
+      const estimasiHK = (totalJam / 20).toFixed(1).replace('.', ',') + ' HK';
+
+      const archiveItem = {
+        id: "rk-" + Date.now(),
+        savedAt: getNowTimestamp(),
+        moldName: moldName || 'Tanpa Nama',
+        moldJob: moldJob || '-',
+        startDate: startDate,
+        endDate: endDate,
+        totalJam: totalJam,
+        totalBiaya: totalBiaya,
+        hk: estimasiHK,
+        checkpoints: JSON.parse(JSON.stringify(rk_checkpoints))
+      };
+
+      savedRencanaKerja.unshift(archiveItem);
+      localStorage.setItem('workshop_rk_archive', JSON.stringify(savedRencanaKerja));
+
+      saveState({
+        id: "log-" + Date.now(),
+        timestamp: getNowTimestamp(),
+        type: "create",
+        projName: archiveItem.moldName,
+        message: `Menyimpan Rencana Kerja [${archiveItem.moldName}] ke arsip selesai (${archiveItem.checkpoints.length} item, ${totalJam} Jam).`
+      });
+
+      // Kembalikan form ke semula (bersih)
+      rk_clearAllData(true);
+
+      showToast(`Rencana Kerja "${archiveItem.moldName}" berhasil disimpan ke arsip selesai!`);
+      renderRKArchive();
+    }
+
+    function renderRKArchive() {
+      const container = document.getElementById('rkArchiveContainer');
+      container.innerHTML = '';
+      document.getElementById('badgeRKArchive').innerText = savedRencanaKerja.length;
+
+      if (savedRencanaKerja.length === 0) {
+        container.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400 text-xs"><i class="fa-solid fa-box-archive text-3xl mb-2 text-slate-300"></i><p>Belum ada rencana kerja yang disimpan ke arsip.</p></div>`;
+        return;
+      }
+
+      savedRencanaKerja.forEach((item) => {
+        const cardHTML = `
+          <div class="bg-white rounded-2xl shadow-sm hover:shadow-md transition border border-slate-200 flex flex-col justify-between overflow-hidden">
+            <div class="p-4 sm:p-5">
+              <div class="flex justify-between items-start mb-2.5">
+                <div>
+                  <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                    <i class="fa-solid fa-circle-check mr-1"></i> Tersimpan
+                  </span>
+                  <h3 class="font-bold text-base text-slate-800 mt-1.5">${item.moldName}</h3>
+                  <p class="text-xs text-slate-500">${item.moldJob}</p>
+                </div>
+                <button onclick="deleteRKArchive('${item.id}')" title="Hapus Arsip" class="text-slate-300 hover:text-rose-500 transition text-xs p-1.5">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 text-xs text-slate-600 mb-3 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                <div><span class="text-slate-400 block text-[10px]">Total Jam:</span> <strong class="text-slate-700">${item.totalJam} Jam</strong></div>
+                <div><span class="text-slate-400 block text-[10px]">Estimasi HK:</span> <strong class="text-slate-700">${item.hk}</strong></div>
+                <div><span class="text-slate-400 block text-[10px]">Total Biaya:</span> <strong class="text-slate-700">${rk_formatRupiah(item.totalBiaya)}</strong></div>
+                <div><span class="text-slate-400 block text-[10px]">Checkpoint:</span> <strong class="text-slate-700">${item.checkpoints ? item.checkpoints.length : 0} Item</strong></div>
+              </div>
+
+              <div class="text-[11px] text-slate-400 flex items-center justify-between pt-1">
+                <span>Disimpan: ${item.savedAt}</span>
+                <span>${item.startDate} &bull; ${item.endDate}</span>
+              </div>
+            </div>
+
+            <div class="p-3 bg-slate-50 border-t border-slate-100 flex items-center gap-2">
+              <button onclick="loadArchiveToActive('${item.id}')" class="flex-1 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-pen-to-square"></i> Buka / Edit
+              </button>
+              <button onclick="printArchiveItem('${item.id}')" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5" title="Cetak Lembar Dokumen">
+                <i class="fa-solid fa-print"></i>
+              </button>
+            </div>
+          </div>
+        `;
+        container.innerHTML += cardHTML;
+      });
+    }
+
+    function loadArchiveToActive(archiveId) {
+      const item = savedRencanaKerja.find(a => a.id === archiveId);
+      if (!item) return;
+
+      if (rk_checkpoints.length > 0) {
+        if (!confirm("Formulir rencana kerja saat ini masih terisi. Ganti dengan data dari arsip ini?")) {
+          return;
+        }
+      }
+
+      document.getElementById('rk_moldName').value = item.moldName !== 'Tanpa Nama' ? item.moldName : '';
+      document.getElementById('rk_moldJob').value = item.moldJob !== '-' ? item.moldJob : '';
+      document.getElementById('rk_moldStartDate').value = item.startDate !== '-' ? item.startDate : '';
+      document.getElementById('rk_moldEndDate').value = item.endDate !== '-' ? item.endDate : '';
+
+      rk_checkpoints = JSON.parse(JSON.stringify(item.checkpoints || []));
+      rk_saveAllData();
+
+      switchTab('rencanaKerja');
+      showToast(`Rencana kerja "${item.moldName}" dimuat ke formulir!`);
+    }
+
+    function printArchiveItem(archiveId) {
+      loadArchiveToActive(archiveId);
+      setTimeout(() => {
+        rk_previewPDF();
+      }, 300);
+    }
+
+    function deleteRKArchive(archiveId) {
+      const item = savedRencanaKerja.find(a => a.id === archiveId);
+      if (!item) return;
+      if (confirm(`Yakin ingin menghapus arsip rencana kerja "${item.moldName}"?`)) {
+        savedRencanaKerja = savedRencanaKerja.filter(a => a.id !== archiveId);
+        localStorage.setItem('workshop_rk_archive', JSON.stringify(savedRencanaKerja));
+        renderRKArchive();
+        showToast("Arsip berhasil dihapus.");
+      }
+    }
+
+    function filterRKArchive() {
+      const query = document.getElementById('archiveSearchInput').value.toLowerCase();
+      const cards = document.querySelectorAll('#rkArchiveContainer > div');
+
+      cards.forEach(card => {
+        const text = card.innerText.toLowerCase();
+        card.style.display = text.includes(query) ? '' : 'none';
+      });
+    }
+
+    // Listener input mold rencana kerja
+    ['rk_moldName', 'rk_moldJob', 'rk_moldStartDate', 'rk_moldEndDate'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => {
+        rk_saveAllData();
+        rk_renderAll();
+      });
+    });
+
+    // Inisialisasi
+    rk_loadSavedInfo();
+    rk_previewRateNotice();
+    renderDashboard();
+  </script>
+</body>
+</html>
